@@ -46,9 +46,13 @@ class ContentGenerator(
             各発言を "【キャラクター名】: 発言内容" の形式で書いてください。
         """.trimIndent()
 
-        val dialogue = anthropicClient.generateMessage("claude-3-haiku-20240307", listOf(ChatMessage("user", dialoguePrompt)))
+        // 4. Claudeモデル：ユーザー指定に合わせて更新。
+        // 指定: claude-haiku-4-5-20251001
+        val dialogue = anthropicClient.generateMessage("claude-haiku-4-5-20251001", listOf(ChatMessage("user", dialoguePrompt)))
 
-        // 4. ChatGPTによる画像プロンプト生成
+        // 5. ChatGPTによる画像プロンプト生成
+        // OpenAIのモデル指定が不明瞭だったため、軽量かつ最新のgpt-4o-miniを使用します。
+        // 必要に応じて "gpt-5-preview" などに変更してください。
         val imagePromptGenPrompt = """
             以下のAI討論記事の内容を象徴する、ブログのアイキャッチ画像のプロンプト（英語）を作成してください。
             未来的で、AI技術を感じさせる、わかりやすい図解のようなスタイルを含めてください。
