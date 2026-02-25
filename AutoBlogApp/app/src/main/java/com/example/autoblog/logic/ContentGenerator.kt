@@ -46,7 +46,7 @@ class ContentGenerator(
             各発言を "【キャラクター名】: 発言内容" の形式で書いてください。
         """.trimIndent()
 
-        val dialogue = anthropicClient.generateMessage("claude-3-opus-20240229", listOf(ChatMessage("user", dialoguePrompt)))
+        val dialogue = anthropicClient.generateMessage("claude-3-haiku-20240307", listOf(ChatMessage("user", dialoguePrompt)))
 
         // 4. ChatGPTによる画像プロンプト生成
         val imagePromptGenPrompt = """
@@ -57,7 +57,7 @@ class ContentGenerator(
             $dialogue
         """.trimIndent()
 
-        val imagePrompt = openAiClient.generateChat("gpt-4-turbo-preview", listOf(ChatMessage("user", imagePromptGenPrompt)))
+        val imagePrompt = openAiClient.generateChat("gpt-4o-mini", listOf(ChatMessage("user", imagePromptGenPrompt)))
 
         // 5. 画像生成
         val imageUrl = openAiClient.generateImage(imagePrompt)
@@ -74,6 +74,10 @@ class ContentGenerator(
 
             ## 元記事
             [${targetNews.title}](${targetNews.link})
+
+            ---
+            ※この記事のアイキャッチ画像はAIによって自動生成されたものです。
+            ※画像リンクの有効期限は生成から約1時間です。記事を公開する前に、リンクから画像を保存し、noteにアップロードしてください。
         """.trimIndent()
 
         return finalContent to imageUrl
