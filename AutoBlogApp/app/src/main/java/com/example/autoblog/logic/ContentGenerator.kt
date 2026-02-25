@@ -42,6 +42,11 @@ class ContentGenerator(
             3. 独自の視点や未来予測（ChatGPT中心）
             4. まとめ（Claude）
 
+            重要な指示:
+            この記事はnoteで収益（投げ銭）を得ることを目的としています。
+            読者が「ためになった」「面白かった」と感じてサポートしたくなるような、付加価値の高い洞察や、ウィットに富んだ会話を含めてください。
+            また、記事の最後にはClaudeが丁寧に、しかしユーモアを交えてサポートをお願いする一言を添えてください。
+
             出力形式:
             各発言を "【キャラクター名】: 発言内容" の形式で書いてください。
         """.trimIndent()
@@ -51,8 +56,7 @@ class ContentGenerator(
         val dialogue = anthropicClient.generateMessage("claude-haiku-4-5-20251001", listOf(ChatMessage("user", dialoguePrompt)))
 
         // 5. ChatGPTによる画像プロンプト生成
-        // OpenAIのモデル指定が不明瞭だったため、軽量かつ最新のgpt-4o-miniを使用します。
-        // 必要に応じて "gpt-5-preview" などに変更してください。
+        // 指定: gpt-5-mini-2025-08-07
         val imagePromptGenPrompt = """
             以下のAI討論記事の内容を象徴する、ブログのアイキャッチ画像のプロンプト（英語）を作成してください。
             未来的で、AI技術を感じさせる、わかりやすい図解のようなスタイルを含めてください。
@@ -61,7 +65,7 @@ class ContentGenerator(
             $dialogue
         """.trimIndent()
 
-        val imagePrompt = openAiClient.generateChat("gpt-4o-mini", listOf(ChatMessage("user", imagePromptGenPrompt)))
+        val imagePrompt = openAiClient.generateChat("gpt-5-mini-2025-08-07", listOf(ChatMessage("user", imagePromptGenPrompt)))
 
         // 5. 画像生成
         val imageUrl = openAiClient.generateImage(imagePrompt)
