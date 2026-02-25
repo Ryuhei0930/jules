@@ -1,5 +1,7 @@
 # Real-time AI Translator (JP <-> EN)
 
+[日本語版はこちら (Japanese)](./README_JP.md)
+
 A lightweight, ultra-fast real-time translation web app designed for mobile usage.
 It leverages the Web Speech API for zero-latency speech recognition and synthesis, combined with fast Generative AI models (Gemini 1.5 Flash or GPT-4o-mini) for accurate translation.
 
