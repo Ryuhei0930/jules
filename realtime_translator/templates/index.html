@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Real-time AI Translator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f0f2f5;
+        }
+        header {
+            background-color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 1rem;
+            line-height: 1.4;
+            position: relative;
+        }
+        .message.user {
+            align-self: flex-end;
+            background-color: #007bff;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.ai {
+            align-self: flex-start;
+            background-color: #e4e6eb;
+            color: black;
+            border-bottom-left-radius: 4px;
+        }
+        .controls {
+            padding: 20px;
+            background-color: white;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
+        }
+        button {
+            flex: 1;
+            padding: 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        button:active {
+            transform: scale(0.96);
+        }
+        button.jp {
+            background-color: #ff4d4f; /* Red for JP */
+            color: white;
+        }
+        button.en {
+            background-color: #1890ff; /* Blue for EN */
+            color: white;
+        }
+        button.listening {
+            animation: pulse 1.5s infinite;
+            opacity: 0.8;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 0, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+        }
+        .status {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>Real-time AI Translator</header>
+
+    <div id="chat-container">
+        <div class="message ai">Ready to translate. Press a button to speak.</div>
+    </div>
+
+    <div class="controls">
+        <button id="btn-jp" class="jp" onmousedown="startListening('ja')" onmouseup="stopListening()" ontouchstart="startListening('ja')" ontouchend="stopListening()">
+            <span>🇯🇵 Speak Japanese</span>
+            <span class="status">Translate to EN</span>
+        </button>
+        <button id="btn-en" class="en" onmousedown="startListening('en')" onmouseup="stopListening()" ontouchstart="startListening('en')" ontouchend="stopListening()">
+            <span>🇺🇸 Speak English</span>
+            <span class="status">Translate to JP</span>
+        </button>
+    </div>
+
+    <script>
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/translate`;
+        let socket;
+        let recognition;
+        let isListening = false;
+        let currentSourceLang = 'ja';
+        let currentTargetLang = 'en';
+
+        function connectWebSocket() {
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                console.log("Connected to WebSocket");
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.translated) {
+                    addMessage(data.translated, 'ai');
+                    speak(data.translated, currentTargetLang);
+                } else if (data.error) {
+                    addMessage(`Error: ${data.error}`, 'ai');
+                }
+            };
+
+            socket.onclose = () => {
+                console.log("Disconnected. Reconnecting...");
+                setTimeout(connectWebSocket, 1000);
+            };
+        }
+
+        connectWebSocket();
+
+        // Speech Recognition Setup
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false; // We want final result to translate
+
+            recognition.onstart = () => {
+                isListening = true;
+                const btn = currentSourceLang === 'ja' ? document.getElementById('btn-jp') : document.getElementById('btn-en');
+                btn.classList.add('listening');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.querySelectorAll('button').forEach(b => b.classList.remove('listening'));
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                if (transcript.trim() !== "") {
+                    addMessage(transcript, 'user');
+                    // Send to server
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            text: transcript,
+                            source: currentSourceLang,
+                            target: currentTargetLang
+                        }));
+                    } else {
+                        addMessage("Connection lost. Please wait.", 'ai');
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error", event.error);
+                isListening = false;
+                document.querySelectorAll('button').forEach(b => b.classList.remove('listening'));
+            };
+        } else {
+            alert("Web Speech API is not supported in this browser. Please use Chrome or Safari.");
+        }
+
+        function startListening(lang) {
+            if (!recognition) return;
+            if (isListening) recognition.stop();
+
+            currentSourceLang = lang;
+            currentTargetLang = lang === 'ja' ? 'en' : 'ja';
+
+            recognition.lang = lang === 'ja' ? 'ja-JP' : 'en-US';
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function stopListening() {
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+        }
+
+        function addMessage(text, type) {
+            const container = document.getElementById('chat-container');
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function speak(text, lang) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = lang === 'ja' ? 'ja-JP' : 'en-US';
+                utterance.rate = 1.0; // Normal speed
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    </script>
+</body>
+</html>
