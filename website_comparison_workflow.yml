@@ -1,0 +1,286 @@
+app:
+  description: '自社物件と競合物件のURL（最大2つ）を入力すると、自動でWebページの内容を読み取り、プロの不動産コンサルタントの視点で比較・分析レポートを作成するワークフローです。'
+  icon: 🏢
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: 不動産Webサイト比較ワークフロー
+  use_icon_as_answer_icon: false
+kind: app
+version: 0.1.2
+workflow:
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+        - .JPG
+        - .JPEG
+        - .PNG
+        - .GIF
+        - .WEBP
+        - .SVG
+      allowed_file_types:
+        - image
+      allowed_urls: []
+      image:
+        detail: high
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+          - remote_url
+          - local_file
+    opening_statement: "こんにちは！不動産コンサルタントとして、マンション物件サイトの比較・分析を行います。\n\n「自社物件サイトのURL」と「競合物件サイトのURL（最大2つ）」を入力してください。\n\n※URL以外の文字を入れると正しく読み取れない場合がありますので、URLのみをご入力ください。"
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      configs: []
+      enabled: false
+      type: ''
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+      - data:
+          sourceType: start
+          targetType: http-request
+        id: start-source-my_site_http-target
+        source: start
+        target: my_site_http
+      - data:
+          sourceType: start
+          targetType: http-request
+        id: start-source-comp_site1_http-target
+        source: start
+        target: comp_site1_http
+      - data:
+          sourceType: start
+          targetType: http-request
+        id: start-source-comp_site2_http-target
+        source: start
+        target: comp_site2_http
+      - data:
+          sourceType: http-request
+          targetType: llm
+        id: my_site_http-source-llm-target
+        source: my_site_http
+        target: llm
+      - data:
+          sourceType: http-request
+          targetType: llm
+        id: comp_site1_http-source-llm-target
+        source: comp_site1_http
+        target: llm
+      - data:
+          sourceType: http-request
+          targetType: llm
+        id: comp_site2_http-source-llm-target
+        source: comp_site2_http
+        target: llm
+      - data:
+          sourceType: llm
+          targetType: answer
+        id: llm-source-answer-target
+        source: llm
+        target: answer
+    nodes:
+      - data:
+          desc: ''
+          selected: false
+          title: 開始
+          type: start
+          variables:
+            - label: 自社物件URL
+              max_length: 256
+              options: []
+              required: true
+              type: text-input
+              variable: my_url
+            - label: 競合物件URL 1
+              max_length: 256
+              options: []
+              required: true
+              type: text-input
+              variable: comp_url_1
+            - label: 競合物件URL 2 (任意)
+              max_length: 256
+              options: []
+              required: false
+              type: text-input
+              variable: comp_url_2
+        height: 142
+        id: start
+        position:
+          x: 80
+          y: 282
+        positionAbsolute:
+          x: 80
+          y: 282
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          authorization:
+            config: null
+            type: no-auth
+          body:
+            data: ''
+            type: none
+          desc: ''
+          headers: ''
+          method: get
+          params: ''
+          selected: false
+          timeout:
+            connect: 10
+            read: 60
+            write: 10
+          title: 自社サイト取得(Jina Reader)
+          type: http-request
+          url: https://r.jina.ai/{{#start.my_url#}}
+          variables: []
+        height: 106
+        id: my_site_http
+        position:
+          x: 400
+          y: 80
+        positionAbsolute:
+          x: 400
+          y: 80
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          authorization:
+            config: null
+            type: no-auth
+          body:
+            data: ''
+            type: none
+          desc: ''
+          headers: ''
+          method: get
+          params: ''
+          selected: false
+          timeout:
+            connect: 10
+            read: 60
+            write: 10
+          title: 競合サイト1取得(Jina Reader)
+          type: http-request
+          url: https://r.jina.ai/{{#start.comp_url_1#}}
+          variables: []
+        height: 106
+        id: comp_site1_http
+        position:
+          x: 400
+          y: 282
+        positionAbsolute:
+          x: 400
+          y: 282
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          authorization:
+            config: null
+            type: no-auth
+          body:
+            data: ''
+            type: none
+          desc: ''
+          headers: ''
+          method: get
+          params: ''
+          selected: false
+          timeout:
+            connect: 10
+            read: 60
+            write: 10
+          title: 競合サイト2取得(Jina Reader)
+          type: http-request
+          url: https://r.jina.ai/{{#start.comp_url_2#}}
+          variables: []
+        height: 106
+        id: comp_site2_http
+        position:
+          x: 400
+          y: 484
+        positionAbsolute:
+          x: 400
+          y: 484
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          context:
+            enabled: false
+            variable_selector: []
+          desc: ''
+          model:
+            completion_params:
+              temperature: 0.7
+            mode: chat
+            name: gpt-4o
+            provider: openai
+          prompt_template:
+            - id: system-prompt
+              role: system
+              text: "あなたは業界経験豊富な**プロの不動産コンサルタント**です。\nユーザーから提供された複数のマンション物件のWebサイトから抽出したテキストデータ（自社サイトおよび競合サイト）を分析し、物件の魅力や市場におけるポジショニングを比較したレポートと一覧表を作成してください。\n\n以下のテキストデータをもとに、不動産コンサルタントの知見を活かしてマークダウン形式でレポートを作成してください。\n\n【取得したWebサイト情報】\n--- 自社物件サイト ({{#start.my_url#}}) ---\n{{#my_site_http.body#}}\n\n--- 競合物件サイト1 ({{#start.comp_url_1#}}) ---\n{{#comp_site1_http.body#}}\n\n--- 競合物件サイト2 ({{#start.comp_url_2#}}) ---\n{{#comp_site2_http.body#}}\n\n【出力フォーマット】\n# 🏢 マンション物件 比較分析レポート\n\n## 1. サイト・物件の全体概要\n各サイト（自社および競合）がアピールしているメインコンセプトや、ターゲット層（ファミリー、単身、投資用など）を要約してください。\n\n## 2. 物件比較表（サマリー）\nサイトから読み取れる情報を抽出し、Markdownのテーブル（表）形式でわかりやすく比較してください。\n※情報が記載されていない場合は「記載なし」または「不明」としてください。\n\n| 比較項目 | 自社物件 | 競合物件1 | 競合物件2 |\n| :--- | :--- | :--- | :--- |\n| **コンセプト/キャッチコピー** | | | |\n| **立地・アクセス** | | | |\n| **価格帯/専有面積** | | | |\n| **間取りの傾向** | | | |\n| **特徴的な設備・共用施設** | | | |\n| **周辺環境のアピール点** | | | |\n\n## 3. 強みと弱みの分析 (プロの視点)\n自社物件サイトが競合と比較して優れている点（強み・差別化要因）と、見劣りしている点や訴求が足りない点（弱み）を、不動産コンサルタントの視点で鋭く分析してください。\n\n## 4. 💡 サイト改善・販売促進アクションプラン\n競合サイトの分析結果を踏まえ、自社サイトのコンバージョン（資料請求・来場予約）を高めるための具体的な改善アクションや、販売戦略の提案を3〜5つ挙げてください。\n（例：ターゲット層に合わせたキャッチコピーの変更、特定の設備アピールの強化、周辺環境の魅力の伝え方の工夫など）\n\n注意事項：\n- 取得できなかった情報がある場合は、決して推測やハルシネーションで補わず、取得できた範囲で分析を行ってください。\n- 不動産購入検討者が重視するポイント（立地、価格、設備、環境など）に焦点を当てて分析してください。"
+            - id: user-prompt
+              role: user
+              text: "提供したWebサイトのテキスト情報を分析し、比較レポートを作成してください。"
+          selected: false
+          title: LLM
+          type: llm
+          variables: []
+        height: 98
+        id: llm
+        position:
+          x: 720
+          y: 282
+        positionAbsolute:
+          x: 720
+          y: 282
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          answer: '{{#llm.text#}}'
+          desc: ''
+          selected: false
+          title: 回答
+          type: answer
+          variables: []
+        height: 103
+        id: answer
+        position:
+          x: 1040
+          y: 282
+        positionAbsolute:
+          x: 1040
+          y: 282
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+    viewport:
+      x: -54
+      y: 43.5
+      zoom: 1
