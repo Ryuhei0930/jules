@@ -614,22 +614,21 @@ workflow:
               </html>
               """
 
-              # Base64エンコードしてDifyのファイル型として返却
-              # Difyで直接ダウンロードできるように構造化
+              # Base64のData URIスキームを作成してマークダウンリンクとして出力
               html_bytes = html_content.encode('utf-8')
               html_base64 = base64.b64encode(html_bytes).decode('utf-8')
+              data_uri = f"data:text/html;base64,{html_base64}"
 
-              # DifyのCode Nodeは辞書を返す。ファイルの返却仕様に合わせて構築
+              # クリックして新しいタブで開けるリンクを生成
+              download_link = f"📄 **[提案書（HTML版）を開く・PDFとして保存する]({data_uri})**"
+
               return {
-                  "result_file": {
-                      "type": "text/html",
-                      "name": "proposal_presentation.html",
-                      "data": html_base64
-                  }
+                  "result_file_link": download_link
               }
         outputs:
-          result_file:
-            type: file
+          result_file_link:
+            type: string
+            children: null
       height: 98
       id: code_output
       position:
@@ -652,8 +651,8 @@ workflow:
           variable: final_proposal_text
         - value_selector:
           - code_output
-          - result_file
-          variable: presentation_file
+          - result_file_link
+          variable: presentation_link
         selected: false
         title: 終了
         type: end
