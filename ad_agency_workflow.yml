@@ -592,6 +592,9 @@ workflow:
               import base64
               import json
 
+              # 構文エラー（f-string内での\の利用）を防ぐため事前に改行コードを置換
+              formatted_text = proposal_text.replace('\n', '<br>')
+
               # Markdownを簡易的なHTMLに変換
               html_content = f"""
               <!DOCTYPE html>
@@ -608,7 +611,7 @@ workflow:
               <body>
                   <h1>広告代理店 企画提案書</h1>
                   <div>
-                      {proposal_text.replace('\n', '<br>')}
+                      {formatted_text}
                   </div>
               </body>
               </html>
