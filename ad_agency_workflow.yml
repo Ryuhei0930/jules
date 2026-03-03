@@ -198,9 +198,20 @@ workflow:
     - data:
         isInIteration: false
         sourceType: llm
-        targetType: end
-      id: llm_proposal-end
+        targetType: code
+      id: llm_proposal-code_output
       source: llm_proposal
+      sourceHandle: source
+      target: code_output
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: end
+      id: code_output-end
+      source: code_output
       sourceHandle: source
       target: end
       targetHandle: target
@@ -537,8 +548,8 @@ workflow:
           completion_params:
             temperature: 0.6
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: claude-3-5-sonnet-20241022
+          provider: anthropic
         prompt_template:
         - id: system
           role: system
@@ -547,7 +558,7 @@ workflow:
           role: user
           text: "【依頼内容】\n{{#start.request_content#}}\n\n【市場調査レポート】\n{{#llm_summary.text#}}\n\n【上位3つの企画案と選定理由】\n{{#llm_evaluate.text#}}"
         selected: false
-        title: 最終提案書作成 (起承転結)
+        title: 最終提案書作成 (Claude起承転結)
         type: llm
         variables: []
         vision:
@@ -566,22 +577,93 @@ workflow:
       type: custom
       width: 244
     - data:
+        desc: '最終提案書の内容をHTML形式のファイルに変換し、ダウンロード可能にします。これをブラウザで開いて「PDFとして印刷・保存」することで綺麗なPDF資料になります。'
+        selected: false
+        title: HTMLファイル変換 (PDF保存用)
+        type: code
+        variables:
+        - value_selector:
+          - llm_proposal
+          - text
+          variable: proposal_text
+        code_language: python3
+        code: |
+          def main(proposal_text: str) -> dict:
+              import base64
+              import json
+
+              # Markdownを簡易的なHTMLに変換
+              html_content = f"""
+              <!DOCTYPE html>
+              <html lang="ja">
+              <head>
+                  <meta charset="UTF-8">
+                  <title>企画提案書</title>
+                  <style>
+                      body {{ font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; line-height: 1.6; padding: 40px; color: #333; }}
+                      h1, h2, h3 {{ color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; }}
+                      p {{ margin-bottom: 1em; white-space: pre-wrap; }}
+                  </style>
+              </head>
+              <body>
+                  <h1>広告代理店 企画提案書</h1>
+                  <div>
+                      {proposal_text.replace('\n', '<br>')}
+                  </div>
+              </body>
+              </html>
+              """
+
+              # Base64エンコードしてDifyのファイル型として返却
+              # Difyで直接ダウンロードできるように構造化
+              html_bytes = html_content.encode('utf-8')
+              html_base64 = base64.b64encode(html_bytes).decode('utf-8')
+
+              # DifyのCode Nodeは辞書を返す。ファイルの返却仕様に合わせて構築
+              return {
+                  "result_file": {
+                      "type": "text/html",
+                      "name": "proposal_presentation.html",
+                      "data": html_base64
+                  }
+              }
+        outputs:
+          result_file:
+            type: file
+      height: 98
+      id: code_output
+      position:
+        x: 1880
+        y: 350
+      positionAbsolute:
+        x: 1880
+        y: 350
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
         desc: ''
         outputs:
         - value_selector:
           - llm_proposal
           - text
-          variable: final_proposal
+          variable: final_proposal_text
+        - value_selector:
+          - code_output
+          - result_file
+          variable: presentation_file
         selected: false
         title: 終了
         type: end
       height: 90
       id: end
       position:
-        x: 1880
+        x: 2180
         y: 350
       positionAbsolute:
-        x: 1880
+        x: 2180
         y: 350
       selected: false
       sourcePosition: right
