@@ -254,16 +254,27 @@ workflow:
           mode: chat
           name: gpt-5
           provider: openai
+        agent_config:
+          strategy: function_calling
+          tools:
+          - enabled: true
+            isDeleted: false
+            notAuthor: false
+            provider_id: duckduckgo
+            provider_name: duckduckgo
+            provider_type: builtin
+            tool_name: ddg_search
+            tool_parameters: {}
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは優秀な市場リサーチャーです。以下の依頼内容に基づいて、最新の市場動向、競合状況、ターゲット層のニーズなどについて詳細な市場調査を行ってください。'
+          text: 'あなたは優秀な市場リサーチャーです。必ず【ウェブ検索ツール】を使用して、以下の依頼内容に関連する「最新の市場動向（市場規模や成長率などの定量データ）」「競合状況の事実」「ターゲット層の最新のニーズ変化」について、リアルタイムな一次情報を収集し、詳細な市場調査を行ってください。単なる推測ではなく、具体的な数値や事例を含めること。'
         - id: user
           role: user
           text: '依頼内容：{{#start.request_content#}}'
         selected: false
         title: 市場調査 (GPT-4o)
-        type: llm
+        type: agent
         variables: []
         vision:
           enabled: false
@@ -291,16 +302,27 @@ workflow:
           mode: chat
           name: gpt-5
           provider: openai
+        agent_config:
+          strategy: function_calling
+          tools:
+          - enabled: true
+            isDeleted: false
+            notAuthor: false
+            provider_id: duckduckgo
+            provider_name: duckduckgo
+            provider_type: builtin
+            tool_name: ddg_search
+            tool_parameters: {}
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは鋭い洞察力を持つ市場アナリストです。以下の依頼内容に基づいて、マクロ要因、市場の成長性、潜在的なリスクや機会などについて詳細な市場調査を行ってください。'
+          text: 'あなたは鋭い洞察力を持つマクロ経済・市場アナリストです。必ず【ウェブ検索ツール】を使用して、以下の依頼内容に関連する「法規制の動き」「社会全体のトレンド変化」「潜在的なリスク（炎上リスク・競合の動き）」「新たなビジネス機会」について、客観的・定量的なデータに基づいて分析し、詳細な市場調査を行ってください。'
         - id: user
           role: user
           text: '依頼内容：{{#start.request_content#}}'
         selected: false
         title: 市場調査 (Claude)
-        type: llm
+        type: agent
         variables: []
         vision:
           enabled: false
@@ -328,16 +350,27 @@ workflow:
           mode: chat
           name: gpt-5
           provider: openai
+        agent_config:
+          strategy: function_calling
+          tools:
+          - enabled: true
+            isDeleted: false
+            notAuthor: false
+            provider_id: duckduckgo
+            provider_name: duckduckgo
+            provider_type: builtin
+            tool_name: ddg_search
+            tool_parameters: {}
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは幅広い知識を持つマーケティングリサーチャーです。以下の依頼内容に基づいて、消費者行動、トレンド予測、技術的要因などについて詳細な市場調査を行ってください。'
+          text: 'あなたは最新トレンドや技術に精通したマーケティングリサーチャーです。必ず【ウェブ検索ツール】を使用して、依頼内容に関連する「SNS上の消費者行動・インサイト」「これから伸びる技術トレンド（AI, XRなど）」「若年層を中心とした最新カルチャー」について、事例や定量データを踏まえて詳細な市場調査を行ってください。'
         - id: user
           role: user
           text: '依頼内容：{{#start.request_content#}}'
         selected: false
         title: 市場調査 (Gemini)
-        type: llm
+        type: agent
         variables: []
         vision:
           enabled: false
@@ -405,12 +438,12 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: "あなたはクリエイティブなプランナーです。市場調査レポートと元の依頼内容を元に、革新的で効果的な企画案を【3案】提案してください。\n各案には「タイトル」「ターゲット層」「企画のコアアイデア」「期待される効果」を含めてください。"
+          text: "あなたは【ROI至上主義の戦略コンサルタント兼プランナー】です。市場調査レポートと元の依頼内容を元に、決して失敗せず、確実に売上（コンバージョン）を生み出す手堅くデータドリブンな企画案を【3案】提案してください。\n各案には「タイトル」「ターゲット層」「企画のコア戦略」「予測されるCPA/ROIなどの定量的な効果」を含めてください。"
         - id: user
           role: user
           text: "【依頼内容】\n{{#start.request_content#}}\n\n【市場調査レポート】\n{{#llm_summary.text#}}"
         selected: false
-        title: 企画案生成 (プランナーA)
+        title: 企画案生成 (戦略コンサルタントA)
         type: llm
         variables: []
         vision:
@@ -442,12 +475,12 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: "あなたは論理的で戦略的なプランナーです。市場調査レポートと元の依頼内容を元に、実現可能性が高くROIに優れた企画案を【3案】提案してください。\n各案には「タイトル」「ターゲット層」「企画のコアアイデア」「期待される効果」を含めてください。"
+          text: "あなたは【カンヌ広告祭常連の天才クリエイター】です。市場調査レポートと元の依頼内容を元に、既存の常識をすべて破壊し、SNSで爆発的に拡散される（炎上スレスレでも構わない）クレイジーで尖った企画案を【3案】提案してください。\n各案には「タイトル」「ターゲット層」「誰も思いつかないコアアイデア」「バズを生むための着火剤・仕掛け」を含めてください。"
         - id: user
           role: user
           text: "【依頼内容】\n{{#start.request_content#}}\n\n【市場調査レポート】\n{{#llm_summary.text#}}"
         selected: false
-        title: 企画案生成 (プランナーB)
+        title: 企画案生成 (天才クリエイターB)
         type: llm
         variables: []
         vision:
@@ -479,12 +512,12 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: "あなたはトレンドに敏感な若手プランナーです。市場調査レポートと元の依頼内容を元に、バズを生み出しやすいSNSや最新技術を活用した企画案を【3案】提案してください。\n各案には「タイトル」「ターゲット層」「企画のコアアイデア」「期待される効果」を含めてください。"
+          text: "あなたは【シリコンバレー出身の最先端テックプランナー】です。市場調査レポートと元の依頼内容を元に、最新の生成AI、AR/VR、IoT、ブロックチェーンなどのテクノロジーを主軸に置いた、未来感あふれる新しい体験型の企画案を【3案】提案してください。\n各案には「タイトル」「ターゲット層」「核となる最新テクノロジー」「ユーザーが得られる未知の体験価値」を含めてください。"
         - id: user
           role: user
           text: "【依頼内容】\n{{#start.request_content#}}\n\n【市場調査レポート】\n{{#llm_summary.text#}}"
         selected: false
-        title: 企画案生成 (プランナーC)
+        title: 企画案生成 (テックプランナーC)
         type: llm
         variables: []
         vision:
