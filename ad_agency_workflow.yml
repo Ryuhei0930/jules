@@ -55,9 +55,20 @@ workflow:
     - data:
         isInIteration: false
         sourceType: start
-        targetType: llm
-      id: start-llm_research_1
+        targetType: knowledge_retrieval
+      id: start-knowledge
       source: start
+      sourceHandle: source
+      target: knowledge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: knowledge_retrieval
+        targetType: llm
+      id: knowledge-llm_research_1
+      source: knowledge
       sourceHandle: source
       target: llm_research_1
       targetHandle: target
@@ -65,10 +76,10 @@ workflow:
       zIndex: 0
     - data:
         isInIteration: false
-        sourceType: start
+        sourceType: knowledge_retrieval
         targetType: llm
-      id: start-llm_research_2
-      source: start
+      id: knowledge-llm_research_2
+      source: knowledge
       sourceHandle: source
       target: llm_research_2
       targetHandle: target
@@ -76,10 +87,10 @@ workflow:
       zIndex: 0
     - data:
         isInIteration: false
-        sourceType: start
+        sourceType: knowledge_retrieval
         targetType: llm
-      id: start-llm_research_3
-      source: start
+      id: knowledge-llm_research_3
+      source: knowledge
       sourceHandle: source
       target: llm_research_3
       targetHandle: target
@@ -219,6 +230,33 @@ workflow:
       zIndex: 0
     nodes:
     - data:
+        dataset_ids: []
+        desc: 'アップロードされた最新のPDFやニュースなどのナレッジから、依頼内容に関連する情報を検索します（※インポート後にナレッジを紐付けてください）'
+        multiple_retrieval_config:
+          reranking_enable: false
+          score_threshold: 0.5
+          top_k: 4
+        query_variable_selector:
+        - start
+        - request_content
+        retrieval_mode: multiple
+        selected: false
+        title: 最新情報のナレッジ検索 (RAG)
+        type: knowledge_retrieval
+      height: 90
+      id: knowledge
+      position:
+        x: 380
+        y: 350
+      positionAbsolute:
+        x: 380
+        y: 350
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
         desc: ''
         selected: false
         title: 開始
@@ -245,8 +283,10 @@ workflow:
       width: 244
     - data:
         context:
-          enabled: false
-          variable_selector: []
+          enabled: true
+          variable_selector:
+          - knowledge
+          - result
         desc: ''
         model:
           completion_params:
@@ -257,10 +297,10 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは優秀な市場リサーチャーです。あなたの持つ広範な知識を基に、以下の依頼内容に関連する「最新の市場動向（市場規模や成長率などの定量データ）」「競合状況の事実」「ターゲット層の最新のニーズ変化」について詳細な市場調査を行ってください。単なる推測ではなく、知る限りの具体的な数値や事例を含め、極めて客観的かつ説得力のあるレポートを作成すること。'
+          text: 'あなたは優秀な市場リサーチャーです。提供された【最新情報のナレッジ（コンテキスト）】とあなたの持つ広範な知識を統合し、以下の依頼内容に関連する「最新の市場動向（市場規模や成長率などの定量データ）」「競合状況の事実」「ターゲット層の最新のニーズ変化」について詳細な市場調査を行ってください。単なる推測ではなく、具体的な数値や事例を含め、極めて客観的かつ説得力のあるレポートを作成すること。'
         - id: user
           role: user
-          text: '依頼内容：{{#start.request_content#}}'
+          text: "【提供された最新情報（ナレッジ）】\n{{#context#}}\n\n【依頼内容】\n{{#start.request_content#}}"
         selected: false
         title: 市場調査 (GPT-4o)
         type: llm
@@ -270,10 +310,10 @@ workflow:
       height: 98
       id: llm_research_1
       position:
-        x: 380
+        x: 680
         y: 150
       positionAbsolute:
-        x: 380
+        x: 680
         y: 150
       selected: false
       sourcePosition: right
@@ -282,8 +322,10 @@ workflow:
       width: 244
     - data:
         context:
-          enabled: false
-          variable_selector: []
+          enabled: true
+          variable_selector:
+          - knowledge
+          - result
         desc: ''
         model:
           completion_params:
@@ -294,10 +336,10 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは鋭い洞察力を持つマクロ経済・市場アナリストです。あなたの持つ広範な知識を基に、以下の依頼内容に関連する「法規制の動き」「社会全体のトレンド変化」「潜在的なリスク（炎上リスク・競合の動き）」「新たなビジネス機会」について、客観的・定量的なデータや事象に基づいて分析し、詳細な市場調査を行ってください。'
+          text: 'あなたは鋭い洞察力を持つマクロ経済・市場アナリストです。提供された【最新情報のナレッジ（コンテキスト）】とあなたの広範な知識を統合し、以下の依頼内容に関連する「法規制の動き」「社会全体のトレンド変化」「潜在的なリスク（炎上リスク・競合の動き）」「新たなビジネス機会」について、客観的・定量的なデータや事象に基づいて分析し、詳細な市場調査を行ってください。'
         - id: user
           role: user
-          text: '依頼内容：{{#start.request_content#}}'
+          text: "【提供された最新情報（ナレッジ）】\n{{#context#}}\n\n【依頼内容】\n{{#start.request_content#}}"
         selected: false
         title: 市場調査 (Claude)
         type: llm
@@ -307,10 +349,10 @@ workflow:
       height: 98
       id: llm_research_2
       position:
-        x: 380
+        x: 680
         y: 350
       positionAbsolute:
-        x: 380
+        x: 680
         y: 350
       selected: false
       sourcePosition: right
@@ -319,8 +361,10 @@ workflow:
       width: 244
     - data:
         context:
-          enabled: false
-          variable_selector: []
+          enabled: true
+          variable_selector:
+          - knowledge
+          - result
         desc: ''
         model:
           completion_params:
@@ -331,10 +375,10 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは最新トレンドや技術に精通したマーケティングリサーチャーです。あなたの持つ広範な知識を基に、依頼内容に関連する「SNS上の消費者行動・インサイト」「これから伸びる技術トレンド（AI, XRなど）」「若年層を中心とした最新カルチャー」について、具体的な事例や定量データを踏まえて詳細な市場調査を行ってください。'
+          text: 'あなたは最新トレンドや技術に精通したマーケティングリサーチャーです。提供された【最新情報のナレッジ（コンテキスト）】とあなたの広範な知識を統合し、依頼内容に関連する「SNS上の消費者行動・インサイト」「これから伸びる技術トレンド（AI, XRなど）」「若年層を中心とした最新カルチャー」について、具体的な事例や定量データを踏まえて詳細な市場調査を行ってください。'
         - id: user
           role: user
-          text: '依頼内容：{{#start.request_content#}}'
+          text: "【提供された最新情報（ナレッジ）】\n{{#context#}}\n\n【依頼内容】\n{{#start.request_content#}}"
         selected: false
         title: 市場調査 (Gemini)
         type: llm
@@ -344,10 +388,10 @@ workflow:
       height: 98
       id: llm_research_3
       position:
-        x: 380
+        x: 680
         y: 550
       positionAbsolute:
-        x: 380
+        x: 680
         y: 550
       selected: false
       sourcePosition: right
@@ -381,10 +425,10 @@ workflow:
       height: 98
       id: llm_summary
       position:
-        x: 680
+        x: 980
         y: 350
       positionAbsolute:
-        x: 680
+        x: 980
         y: 350
       selected: false
       sourcePosition: right
@@ -418,10 +462,10 @@ workflow:
       height: 98
       id: llm_idea_1
       position:
-        x: 980
+        x: 1280
         y: 150
       positionAbsolute:
-        x: 980
+        x: 1280
         y: 150
       selected: false
       sourcePosition: right
@@ -455,10 +499,10 @@ workflow:
       height: 98
       id: llm_idea_2
       position:
-        x: 980
+        x: 1280
         y: 350
       positionAbsolute:
-        x: 980
+        x: 1280
         y: 350
       selected: false
       sourcePosition: right
@@ -492,10 +536,10 @@ workflow:
       height: 98
       id: llm_idea_3
       position:
-        x: 980
+        x: 1280
         y: 550
       positionAbsolute:
-        x: 980
+        x: 1280
         y: 550
       selected: false
       sourcePosition: right
@@ -529,10 +573,10 @@ workflow:
       height: 98
       id: llm_evaluate
       position:
-        x: 1280
+        x: 1580
         y: 350
       positionAbsolute:
-        x: 1280
+        x: 1580
         y: 350
       selected: false
       sourcePosition: right
@@ -566,10 +610,10 @@ workflow:
       height: 98
       id: llm_proposal
       position:
-        x: 1580
+        x: 1880
         y: 350
       positionAbsolute:
-        x: 1580
+        x: 1880
         y: 350
       selected: false
       sourcePosition: right
@@ -635,10 +679,10 @@ workflow:
       height: 98
       id: code_output
       position:
-        x: 1880
+        x: 2180
         y: 350
       positionAbsolute:
-        x: 1880
+        x: 2180
         y: 350
       selected: false
       sourcePosition: right
@@ -662,10 +706,10 @@ workflow:
       height: 90
       id: end
       position:
-        x: 2180
+        x: 2480
         y: 350
       positionAbsolute:
-        x: 2180
+        x: 2480
         y: 350
       selected: false
       sourcePosition: right
