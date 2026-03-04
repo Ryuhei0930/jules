@@ -254,27 +254,16 @@ workflow:
           mode: chat
           name: gpt-5
           provider: openai
-        agent_config:
-          strategy: function_calling
-          tools:
-          - enabled: true
-            isDeleted: false
-            notAuthor: false
-            provider_id: duckduckgo
-            provider_name: duckduckgo
-            provider_type: builtin
-            tool_name: ddg_search
-            tool_parameters: {}
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは優秀な市場リサーチャーです。必ず【ウェブ検索ツール】を使用して、以下の依頼内容に関連する「最新の市場動向（市場規模や成長率などの定量データ）」「競合状況の事実」「ターゲット層の最新のニーズ変化」について、リアルタイムな一次情報を収集し、詳細な市場調査を行ってください。単なる推測ではなく、具体的な数値や事例を含めること。'
+          text: 'あなたは優秀な市場リサーチャーです。あなたの持つ広範な知識を基に、以下の依頼内容に関連する「最新の市場動向（市場規模や成長率などの定量データ）」「競合状況の事実」「ターゲット層の最新のニーズ変化」について詳細な市場調査を行ってください。単なる推測ではなく、知る限りの具体的な数値や事例を含め、極めて客観的かつ説得力のあるレポートを作成すること。'
         - id: user
           role: user
           text: '依頼内容：{{#start.request_content#}}'
         selected: false
         title: 市場調査 (GPT-4o)
-        type: agent
+        type: llm
         variables: []
         vision:
           enabled: false
@@ -302,27 +291,16 @@ workflow:
           mode: chat
           name: gpt-5
           provider: openai
-        agent_config:
-          strategy: function_calling
-          tools:
-          - enabled: true
-            isDeleted: false
-            notAuthor: false
-            provider_id: duckduckgo
-            provider_name: duckduckgo
-            provider_type: builtin
-            tool_name: ddg_search
-            tool_parameters: {}
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは鋭い洞察力を持つマクロ経済・市場アナリストです。必ず【ウェブ検索ツール】を使用して、以下の依頼内容に関連する「法規制の動き」「社会全体のトレンド変化」「潜在的なリスク（炎上リスク・競合の動き）」「新たなビジネス機会」について、客観的・定量的なデータに基づいて分析し、詳細な市場調査を行ってください。'
+          text: 'あなたは鋭い洞察力を持つマクロ経済・市場アナリストです。あなたの持つ広範な知識を基に、以下の依頼内容に関連する「法規制の動き」「社会全体のトレンド変化」「潜在的なリスク（炎上リスク・競合の動き）」「新たなビジネス機会」について、客観的・定量的なデータや事象に基づいて分析し、詳細な市場調査を行ってください。'
         - id: user
           role: user
           text: '依頼内容：{{#start.request_content#}}'
         selected: false
         title: 市場調査 (Claude)
-        type: agent
+        type: llm
         variables: []
         vision:
           enabled: false
@@ -350,27 +328,16 @@ workflow:
           mode: chat
           name: gpt-5
           provider: openai
-        agent_config:
-          strategy: function_calling
-          tools:
-          - enabled: true
-            isDeleted: false
-            notAuthor: false
-            provider_id: duckduckgo
-            provider_name: duckduckgo
-            provider_type: builtin
-            tool_name: ddg_search
-            tool_parameters: {}
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは最新トレンドや技術に精通したマーケティングリサーチャーです。必ず【ウェブ検索ツール】を使用して、依頼内容に関連する「SNS上の消費者行動・インサイト」「これから伸びる技術トレンド（AI, XRなど）」「若年層を中心とした最新カルチャー」について、事例や定量データを踏まえて詳細な市場調査を行ってください。'
+          text: 'あなたは最新トレンドや技術に精通したマーケティングリサーチャーです。あなたの持つ広範な知識を基に、依頼内容に関連する「SNS上の消費者行動・インサイト」「これから伸びる技術トレンド（AI, XRなど）」「若年層を中心とした最新カルチャー」について、具体的な事例や定量データを踏まえて詳細な市場調査を行ってください。'
         - id: user
           role: user
           text: '依頼内容：{{#start.request_content#}}'
         selected: false
         title: 市場調査 (Gemini)
-        type: agent
+        type: llm
         variables: []
         vision:
           enabled: false
