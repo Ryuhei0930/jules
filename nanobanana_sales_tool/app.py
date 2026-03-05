@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageOps
 import os
 import io
 import time
@@ -122,16 +122,26 @@ def main():
         help="Apifyで取得したAPIトークン(APIFY_API_TOKEN)を入力してください。空欄の場合はテストモード(白黒変換)で動作します。"
     )
 
-    # APIキーが入力されたら即座に有効性を検証してフィードバックする
-    if api_key_input:
+    @st.cache_data(show_spinner=False)
+    def validate_api_key(api_key):
+        if not api_key:
+            return False, "⚠️ テストモードで動作します"
         try:
-            test_client = ApifyClient(api_key_input)
+            test_client = ApifyClient(api_key)
             test_client.user().get()
-            st.sidebar.success("✅ APIキーは有効です")
+            return True, "✅ APIキーは有効です"
         except Exception:
-            st.sidebar.error("❌ APIキーが無効です")
+            return False, "❌ APIキーが無効です"
+
+    # APIキーが入力されたら有効性を検証 (キャッシュを使って無駄なAPI呼び出しを防ぐ)
+    is_valid_key, msg = validate_api_key(api_key_input)
+    if is_valid_key:
+        st.sidebar.success(msg)
     else:
-        st.sidebar.warning("⚠️ テストモードで動作します")
+        if api_key_input:
+            st.sidebar.error(msg)
+        else:
+            st.sidebar.warning(msg)
 
     st.sidebar.markdown("---")
 
@@ -170,16 +180,29 @@ def main():
 
     # プレビュー
     if image_file is not None:
+        # 画像の読み込みとEXIFの向き情報を適用 (スマホカメラ等の自動回転対応)
+        image = Image.open(image_file)
+        image = ImageOps.exif_transpose(image)
+
+        st.sidebar.header("3. 画像の調整 (オプション)")
+        rotation_options = {"回転なし": 0, "右へ90度": -90, "180度": 180, "左へ90度": 90}
+        selected_rotation = st.sidebar.radio("画像の回転:", list(rotation_options.keys()))
+
+        # 選択された角度で画像を回転 (expand=True で画像が見切れないようにする)
+        if rotation_options[selected_rotation] != 0:
+            image = image.rotate(rotation_options[selected_rotation], expand=True)
+
+        st.sidebar.markdown("---")
+
         col1, col2 = st.columns(2)
 
         with col1:
             st.subheader("撮影/アップロードした写真 (Before)")
-            image = Image.open(image_file)
-            st.image(image, use_container_width=True)
+            st.image(image, width="stretch")
 
         with col2:
             st.subheader("家具配置イメージ (After)")
-            generate_button = st.button("家具を配置する ✨", type="primary", use_container_width=True)
+            generate_button = st.button("家具を配置する ✨", type="primary", width="stretch")
 
             if generate_button:
                 if not prompt:
@@ -195,7 +218,7 @@ def main():
                         generated_image = generate_furniture_image(client, image, prompt)
 
                         if generated_image:
-                            st.image(generated_image, use_container_width=True)
+                            st.image(generated_image, width="stretch")
                             st.success("家具の配置イメージの生成が完了しました！")
                         else:
                             st.error("画像の生成に失敗しました。")
