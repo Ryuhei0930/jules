@@ -34,7 +34,7 @@ def generate_furniture_image(api_key, input_image_pil, prompt_text):
 
         # ユーザー指定のモデルを使用
         # 画像生成に対応した実験的モデルを指定
-        model_name = "gemini-2.0-pro-exp-02-05"
+        model_name = "gemini-3.1-flash-image-preview"
 
         # ユーザー提供コードに沿ったGenerateContent設定 (画像生成用)
         generate_content_config = types.GenerateContentConfig(
