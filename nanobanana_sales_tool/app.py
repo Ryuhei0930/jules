@@ -26,9 +26,8 @@ def generate_furniture_image(api_key, input_image_pil, prompt_text):
             st.warning("APIキーが設定されていないため、テスト用の白黒モック画像を返します。")
             return input_image_pil.convert('L')
 
-        # Gemini Client の初期化 (Vertex AI 経由)
+        # Gemini Client の初期化
         client = genai.Client(
-            vertexai=True,
             api_key=api_key,
         )
 
@@ -81,11 +80,12 @@ def generate_furniture_image(api_key, input_image_pil, prompt_text):
         return None
 
     except Exception as e:
-        st.error(f"画像生成中にエラーが発生しました: {str(e)}")
-        if "403" in str(e) or "API_KEY_INVALID" in str(e):
+        error_msg = str(e)
+        st.error(f"画像生成中にエラーが発生しました: {error_msg}")
+        if "403" in error_msg or "API_KEY_INVALID" in error_msg:
              st.error("APIキーが無効です。Google AI Studioで取得した正しいキーを設定してください。")
-        elif "404" in str(e) or "models/" in str(e):
-             st.error(f"指定されたモデル ({model_name}) にアクセスできません。")
+        elif "404" in error_msg or "models/" in error_msg:
+             st.error("指定されたモデル (gemini-3-pro-image-preview) にアクセスできません。")
         return None
 
 def main():
