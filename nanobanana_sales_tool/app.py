@@ -34,6 +34,13 @@ def generate_furniture_image(client, input_image_pil, prompt_text):
             st.warning("APIキーが設定されていないため、テスト用の白黒モック画像を返します。")
             return input_image_pil.convert('L')
 
+        # APIキーの有効性を確認
+        try:
+            client.user().get()
+        except Exception as auth_e:
+            st.error("APIキーが無効、または認証に失敗しました。正しいApify APIキーを入力してください。")
+            return None
+
         # 1. PIL画像をbase64またはData URIに変換
         base64_image = get_base64_from_pil(input_image_pil)
         image_data_uri = f"data:image/jpeg;base64,{base64_image}"
@@ -50,6 +57,12 @@ def generate_furniture_image(client, input_image_pil, prompt_text):
         # 3. Actorを実行して完了を待つ
         run = client.actor("alizarin_refrigerator-owner/nanobanana-pro").call(run_input=run_input)
 
+        # Actorの実行ステータスを確認
+        run_status = run.get("status")
+        if run_status != "SUCCEEDED":
+            st.error(f"Apify Actor の実行が失敗しました。 (ステータス: {run_status}) クレジット不足や入力エラーの可能性があります。")
+            return None
+
         # 4. 結果のデータセットから画像URLを取得
         dataset_id = run.get("defaultDatasetId")
         if not dataset_id:
@@ -58,6 +71,10 @@ def generate_furniture_image(client, input_image_pil, prompt_text):
 
         # データセットからアイテムを取得
         items = list(client.dataset(dataset_id).iterate_items())
+
+        if not items:
+            st.error("Apify Actorの実行は成功しましたが、データセットが空です。Actorの仕様が変更されたか、画像生成に失敗した可能性があります。")
+            return None
 
         if items and len(items) > 0:
             # 最初のアイテムから結果画像のURLを取得 (出力キーはActorの仕様に依存します。一般的には url, outputUrl, image など)
@@ -104,6 +121,18 @@ def main():
         type="password",
         help="Apifyで取得したAPIトークン(APIFY_API_TOKEN)を入力してください。空欄の場合はテストモード(白黒変換)で動作します。"
     )
+
+    # APIキーが入力されたら即座に有効性を検証してフィードバックする
+    if api_key_input:
+        try:
+            test_client = ApifyClient(api_key_input)
+            test_client.user().get()
+            st.sidebar.success("✅ APIキーは有効です")
+        except Exception:
+            st.sidebar.error("❌ APIキーが無効です")
+    else:
+        st.sidebar.warning("⚠️ テストモードで動作します")
+
     st.sidebar.markdown("---")
 
     # 入力方法の選択
@@ -146,11 +175,11 @@ def main():
         with col1:
             st.subheader("撮影/アップロードした写真 (Before)")
             image = Image.open(image_file)
-            st.image(image, width='stretch')
+            st.image(image, use_container_width=True)
 
         with col2:
             st.subheader("家具配置イメージ (After)")
-            generate_button = st.button("家具を配置する ✨", type="primary", use_container_width=True) # NOTE: st.button does not support 'width' parameter yet in this version, so leaving use_container_width
+            generate_button = st.button("家具を配置する ✨", type="primary", use_container_width=True)
 
             if generate_button:
                 if not prompt:
@@ -166,7 +195,7 @@ def main():
                         generated_image = generate_furniture_image(client, image, prompt)
 
                         if generated_image:
-                            st.image(generated_image, width='stretch')
+                            st.image(generated_image, use_container_width=True)
                             st.success("家具の配置イメージの生成が完了しました！")
                         else:
                             st.error("画像の生成に失敗しました。")
