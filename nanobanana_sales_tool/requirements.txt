@@ -1,4 +1,4 @@
-streamlit
-pillow
-google-genai
-requests
+streamlit>=1.42.0
+google-genai>=0.5.0
+pillow>=11.1.0
+pillow-heif>=0.20.0

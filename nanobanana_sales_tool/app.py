@@ -1,5 +1,6 @@
 import streamlit as st
 from PIL import Image, ImageOps
+import pillow_heif
 import os
 import io
 import time
@@ -84,6 +85,9 @@ def generate_furniture_image(api_key, input_image_pil, prompt_text):
              st.error("指定されたモデルにアクセスできません。")
         return None
 
+# HEICフォーマット(iPhone等の高効率画像)を読み込めるようにする
+pillow_heif.register_heif_opener()
+
 def main():
     st.set_page_config(page_title="新築マンション 家具配置シミュレーター (Google Cloud)", layout="wide")
     st.title("🏡 新築マンション 家具配置シミュレーター")
@@ -126,7 +130,8 @@ def main():
     if input_method == "カメラで撮影する":
         image_file = st.camera_input("お部屋の写真を撮影してください")
     else:
-        image_file = st.file_uploader("お部屋の写真をアップロードしてください", type=["jpg", "jpeg", "png"])
+        # HEICなどの形式も許可
+        image_file = st.file_uploader("お部屋の写真をアップロードしてください", type=["jpg", "jpeg", "png", "heic", "heif"])
 
     # 家具のスタイルの選択
     st.sidebar.header("2. 家具のスタイルを選ぶ")
@@ -152,9 +157,13 @@ def main():
 
     # プレビュー
     if image_file is not None:
-        # 画像の読み込みとEXIFの向き情報を適用 (スマホカメラ等の自動回転対応)
-        image = Image.open(image_file)
-        image = ImageOps.exif_transpose(image)
+        try:
+            # 画像の読み込みとEXIFの向き情報を適用 (スマホカメラ等の自動回転対応)
+            image = Image.open(image_file)
+            image = ImageOps.exif_transpose(image)
+        except Exception as e:
+            st.error(f"画像の読み込みに失敗しました。別の画像をお試しください。({e})")
+            return
 
         st.markdown("---")
 
@@ -171,11 +180,11 @@ def main():
             if rotation_options[selected_rotation] != 0:
                 image = image.rotate(rotation_options[selected_rotation], expand=True)
 
-            st.image(image, width="stretch")
+            st.image(image, use_container_width=True)
 
         with col2:
             st.subheader("家具配置イメージ (After)")
-            generate_button = st.button("家具を配置する ✨", type="primary", width="stretch")
+            generate_button = st.button("家具を配置する ✨", type="primary", use_container_width=True)
 
             if generate_button:
                 if not prompt:
@@ -185,7 +194,7 @@ def main():
                         generated_image = generate_furniture_image(current_api_key, image, prompt)
 
                         if generated_image:
-                            st.image(generated_image, width="stretch")
+                            st.image(generated_image, use_container_width=True)
                             st.success("家具の配置イメージの生成が完了しました！")
                         else:
                             st.error("画像の生成に失敗しました。")
