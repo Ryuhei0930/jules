@@ -32,13 +32,13 @@ def generate_furniture_image(api_key, input_image_pil, prompt_text):
         )
 
         # ユーザー指定のモデルを使用
-        model_name = "gemini-3-pro-image-preview"
+        # 画像生成に対応した実験的モデルを指定
+        model_name = "gemini-2.0-pro-exp-02-05"
 
         # ユーザー提供コードに沿ったGenerateContent設定 (画像生成用)
         generate_content_config = types.GenerateContentConfig(
             temperature = 1,
             top_p = 0.95,
-            # max_output_tokens = 32768, # 画像生成には不要/エラーになる可能性があるためコメントアウト
             response_modalities = ["IMAGE"], # 画像を生成するように指定
             safety_settings = [
                 types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"),
@@ -46,12 +46,8 @@ def generate_furniture_image(api_key, input_image_pil, prompt_text):
                 types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"),
                 types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="OFF")
             ],
-            # ユーザー指定の画像出力設定
-            image_config=types.ImageConfig(
-                aspect_ratio="1:1",
-                # image_size="1K", # 最新SDKでサポートされているか不明な場合は外すが、ユーザー指定を優先
-                output_mime_type="image/jpeg", # Streamlitで扱いやすいJPEGに
-            ),
+            # Gemini APIの GenerateContentConfig.image_config は output_mime_type をサポートしていないため削除
+            # aspect_ratio 等はモデルによってはサポートされない場合があるため最小構成に
         )
 
         contents = [
@@ -85,7 +81,7 @@ def generate_furniture_image(api_key, input_image_pil, prompt_text):
         if "403" in error_msg or "API_KEY_INVALID" in error_msg:
              st.error("APIキーが無効です。Google AI Studioで取得した正しいキーを設定してください。")
         elif "404" in error_msg or "models/" in error_msg:
-             st.error("指定されたモデル (gemini-3-pro-image-preview) にアクセスできません。")
+             st.error("指定されたモデルにアクセスできません。")
         return None
 
 def main():
