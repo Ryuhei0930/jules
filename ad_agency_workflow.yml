@@ -252,8 +252,8 @@ workflow:
           completion_params:
             temperature: 0.7
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -289,8 +289,8 @@ workflow:
           completion_params:
             temperature: 0.7
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -326,8 +326,8 @@ workflow:
           completion_params:
             temperature: 0.7
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -363,8 +363,8 @@ workflow:
           completion_params:
             temperature: 0.5
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -400,8 +400,8 @@ workflow:
           completion_params:
             temperature: 0.8
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -437,8 +437,8 @@ workflow:
           completion_params:
             temperature: 0.8
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -474,8 +474,8 @@ workflow:
           completion_params:
             temperature: 0.8
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -511,8 +511,8 @@ workflow:
           completion_params:
             temperature: 0.4
           mode: chat
-          name: gpt-5
-          provider: openai
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -548,8 +548,8 @@ workflow:
           completion_params:
             temperature: 0.6
           mode: chat
-          name: claude-3-5-sonnet-20241022
-          provider: anthropic
+          name: gemini-3.1-flash-image-preview
+          provider: google
         prompt_template:
         - id: system
           role: system
@@ -558,7 +558,7 @@ workflow:
           role: user
           text: "【依頼内容】\n{{#start.request_content#}}\n\n【市場調査レポート】\n{{#llm_summary.text#}}\n\n【上位3つの企画案と選定理由】\n{{#llm_evaluate.text#}}"
         selected: false
-        title: 最終提案書作成 (Claude起承転結)
+        title: 最終提案書作成 (起承転結)
         type: llm
         variables: []
         vision:
