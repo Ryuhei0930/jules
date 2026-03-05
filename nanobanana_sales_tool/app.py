@@ -28,10 +28,10 @@ def generate_furniture_image(client, input_image_pil, prompt_text):
     )
 
     try:
-        # APIキーがない場合はモック画像を返す(ローカルテスト用)
-        if not os.environ.get("APIFY_API_TOKEN"):
+        # クライアント(APIキー)がない場合はモック画像を返す(ローカルテスト用)
+        if not client:
             time.sleep(2)
-            st.warning("APIFY_API_TOKENが設定されていないため、白黒のモック画像を返します。")
+            st.warning("APIキーが設定されていないため、テスト用の白黒モック画像を返します。")
             return input_image_pil.convert('L')
 
         # 1. PIL画像をbase64またはData URIに変換
@@ -94,6 +94,18 @@ def main():
     st.title("🏡 新築マンション 家具配置シミュレーター")
     st.write("家具の入っていないお部屋の写真から、AIが自動で家具を配置したイメージを生成します。")
 
+    # 設定・APIキー入力
+    st.sidebar.header("⚙️ 設定 (API連携)")
+    # ユーザーが画面から入力したAPIキーを優先。デフォルトは環境変数から取得。
+    default_token = os.environ.get("APIFY_API_TOKEN", "")
+    api_key_input = st.sidebar.text_input(
+        "Nano Banana Pro (Apify) APIキー:",
+        value=default_token,
+        type="password",
+        help="Apifyで取得したAPIトークン(APIFY_API_TOKEN)を入力してください。空欄の場合はテストモード(白黒変換)で動作します。"
+    )
+    st.sidebar.markdown("---")
+
     # 入力方法の選択
     st.sidebar.header("1. お部屋の写真を用意する")
     input_method = st.sidebar.radio("入力方法を選択:", ("カメラで撮影する", "画像をアップロードする"))
@@ -145,13 +157,11 @@ def main():
                     st.warning("家具のスタイルが指定されていません。テキストを入力するか、固定スタイルを選択してください。")
                 else:
                     with st.spinner("Nano Banana Pro (Apify) APIを使用して画像を生成中... 処理に数分かかる場合があります。"):
-                        # Apify クライアントの初期化
-                        api_key = os.environ.get("APIFY_API_TOKEN")
-
-                        if not api_key:
+                        # Apify クライアントの初期化 (入力されたAPIキーを使用)
+                        if not api_key_input:
                             client = None
                         else:
-                            client = ApifyClient(api_key)
+                            client = ApifyClient(api_key_input)
 
                         generated_image = generate_furniture_image(client, image, prompt)
 
