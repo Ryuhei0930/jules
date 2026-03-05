@@ -1,0 +1,4 @@
+streamlit
+pillow
+apify-client
+requests
