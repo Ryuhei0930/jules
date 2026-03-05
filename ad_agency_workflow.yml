@@ -245,7 +245,7 @@ workflow:
       width: 244
     - data:
         context:
-          enabled: true
+          enabled: false
           variable_selector: []
         desc: ''
         model:
@@ -257,10 +257,10 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは優秀な市場リサーチャーです。もし【最新情報のナレッジ（コンテキスト）】が提供されている場合はそれとあなたの持つ広範な知識を統合し、以下の依頼内容に関連する「最新の市場動向（市場規模や成長率などの定量データ）」「競合状況の事実」「ターゲット層の最新のニーズ変化」について詳細な市場調査を行ってください。単なる推測ではなく、具体的な数値や事例を含め、極めて客観的かつ説得力のあるレポートを作成すること。'
+          text: 'あなたは優秀な市場リサーチャーです。あなたの持つ広範な知識を統合し、以下の依頼内容に関連する「最新の市場動向（市場規模や成長率などの定量データ）」「競合状況の事実」「ターゲット層の最新のニーズ変化」について詳細な市場調査を行ってください。単なる推測ではなく、具体的な数値や事例を含め、極めて客観的かつ説得力のあるレポートを作成すること。'
         - id: user
           role: user
-          text: "【提供された最新情報（ナレッジ）】\n{{#context#}}\n\n【依頼内容】\n{{#start.request_content#}}"
+          text: "【依頼内容】\n{{#start.request_content#}}"
         selected: false
         title: 市場調査 (GPT-4o)
         type: llm
@@ -282,7 +282,7 @@ workflow:
       width: 244
     - data:
         context:
-          enabled: true
+          enabled: false
           variable_selector: []
         desc: ''
         model:
@@ -294,10 +294,10 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは鋭い洞察力を持つマクロ経済・市場アナリストです。もし【最新情報のナレッジ（コンテキスト）】が提供されている場合はそれとあなたの広範な知識を統合し、以下の依頼内容に関連する「法規制の動き」「社会全体のトレンド変化」「潜在的なリスク（炎上リスク・競合の動き）」「新たなビジネス機会」について、客観的・定量的なデータや事象に基づいて分析し、詳細な市場調査を行ってください。'
+          text: 'あなたは鋭い洞察力を持つマクロ経済・市場アナリストです。あなたの広範な知識を統合し、以下の依頼内容に関連する「法規制の動き」「社会全体のトレンド変化」「潜在的なリスク（炎上リスク・競合の動き）」「新たなビジネス機会」について、客観的・定量的なデータや事象に基づいて分析し、詳細な市場調査を行ってください。'
         - id: user
           role: user
-          text: "【提供された最新情報（ナレッジ）】\n{{#context#}}\n\n【依頼内容】\n{{#start.request_content#}}"
+          text: "【依頼内容】\n{{#start.request_content#}}"
         selected: false
         title: 市場調査 (Claude)
         type: llm
@@ -319,7 +319,7 @@ workflow:
       width: 244
     - data:
         context:
-          enabled: true
+          enabled: false
           variable_selector: []
         desc: ''
         model:
@@ -331,10 +331,10 @@ workflow:
         prompt_template:
         - id: system
           role: system
-          text: 'あなたは最新トレンドや技術に精通したマーケティングリサーチャーです。もし【最新情報のナレッジ（コンテキスト）】が提供されている場合はそれとあなたの広範な知識を統合し、依頼内容に関連する「SNS上の消費者行動・インサイト」「これから伸びる技術トレンド（AI, XRなど）」「若年層を中心とした最新カルチャー」について、具体的な事例や定量データを踏まえて詳細な市場調査を行ってください。'
+          text: 'あなたは最新トレンドや技術に精通したマーケティングリサーチャーです。あなたの広範な知識を統合し、依頼内容に関連する「SNS上の消費者行動・インサイト」「これから伸びる技術トレンド（AI, XRなど）」「若年層を中心とした最新カルチャー」について、具体的な事例や定量データを踏まえて詳細な市場調査を行ってください。'
         - id: user
           role: user
-          text: "【提供された最新情報（ナレッジ）】\n{{#context#}}\n\n【依頼内容】\n{{#start.request_content#}}"
+          text: "【依頼内容】\n{{#start.request_content#}}"
         selected: false
         title: 市場調査 (Gemini)
         type: llm
