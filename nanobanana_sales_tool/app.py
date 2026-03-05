@@ -111,16 +111,26 @@ def main():
     st.title("🏡 新築マンション 家具配置シミュレーター")
     st.write("家具の入っていないお部屋の写真から、AIが自動で家具を配置したイメージを生成します。")
 
+    # APIキーをセッションステートで管理する
+    if 'apify_api_key' not in st.session_state:
+        st.session_state['apify_api_key'] = os.environ.get("APIFY_API_TOKEN", "")
+
     # 設定・APIキー入力
     st.sidebar.header("⚙️ 設定 (API連携)")
-    # ユーザーが画面から入力したAPIキーを優先。デフォルトは環境変数から取得。
-    default_token = os.environ.get("APIFY_API_TOKEN", "")
-    api_key_input = st.sidebar.text_input(
-        "Nano Banana Pro (Apify) APIキー:",
-        value=default_token,
-        type="password",
-        help="Apifyで取得したAPIトークン(APIFY_API_TOKEN)を入力してください。空欄の場合はテストモード(白黒変換)で動作します。"
-    )
+
+    with st.sidebar.form(key='api_key_form'):
+        api_key_input = st.text_input(
+            "Nano Banana Pro (Apify) APIキー:",
+            value=st.session_state['apify_api_key'],
+            type="password",
+            help="Apifyで取得したAPIトークン(APIFY_API_TOKEN)を入力してください。空欄の場合はテストモード(白黒変換)で動作します。"
+        )
+
+        # スマホ入力(Android等)でのEnter確定漏れを防ぐため、明示的な保存ボタンを設置
+        submit_api_key = st.form_submit_button("APIキーを設定・保存する")
+
+        if submit_api_key:
+            st.session_state['apify_api_key'] = api_key_input
 
     @st.cache_data(show_spinner=False)
     def validate_api_key(api_key):
@@ -133,12 +143,13 @@ def main():
         except Exception:
             return False, "❌ APIキーが無効です"
 
-    # APIキーが入力されたら有効性を検証 (キャッシュを使って無駄なAPI呼び出しを防ぐ)
-    is_valid_key, msg = validate_api_key(api_key_input)
+    # セッションに保存されたAPIキーで有効性を検証
+    current_key = st.session_state['apify_api_key']
+    is_valid_key, msg = validate_api_key(current_key)
     if is_valid_key:
         st.sidebar.success(msg)
     else:
-        if api_key_input:
+        if current_key:
             st.sidebar.error(msg)
         else:
             st.sidebar.warning(msg)
@@ -184,20 +195,21 @@ def main():
         image = Image.open(image_file)
         image = ImageOps.exif_transpose(image)
 
-        st.sidebar.header("3. 画像の調整 (オプション)")
-        rotation_options = {"回転なし": 0, "右へ90度": -90, "180度": 180, "左へ90度": 90}
-        selected_rotation = st.sidebar.radio("画像の回転:", list(rotation_options.keys()))
-
-        # 選択された角度で画像を回転 (expand=True で画像が見切れないようにする)
-        if rotation_options[selected_rotation] != 0:
-            image = image.rotate(rotation_options[selected_rotation], expand=True)
-
-        st.sidebar.markdown("---")
+        st.markdown("---")
 
         col1, col2 = st.columns(2)
 
         with col1:
             st.subheader("撮影/アップロードした写真 (Before)")
+
+            # 回転オプションをサイドバーではなくメイン画面の画像の近くに配置
+            rotation_options = {"回転なし": 0, "右へ90度": -90, "180度": 180, "左へ90度": 90}
+            selected_rotation = st.radio("🔄 画像の回転方向を調整:", list(rotation_options.keys()), horizontal=True)
+
+            # 選択された角度で画像を回転 (expand=True で画像が見切れないようにする)
+            if rotation_options[selected_rotation] != 0:
+                image = image.rotate(rotation_options[selected_rotation], expand=True)
+
             st.image(image, width="stretch")
 
         with col2:
@@ -209,11 +221,11 @@ def main():
                     st.warning("家具のスタイルが指定されていません。テキストを入力するか、固定スタイルを選択してください。")
                 else:
                     with st.spinner("Nano Banana Pro (Apify) APIを使用して画像を生成中... 処理に数分かかる場合があります。"):
-                        # Apify クライアントの初期化 (入力されたAPIキーを使用)
-                        if not api_key_input:
+                        # Apify クライアントの初期化 (セッションに保存されたAPIキーを使用)
+                        if not current_key:
                             client = None
                         else:
-                            client = ApifyClient(api_key_input)
+                            client = ApifyClient(current_key)
 
                         generated_image = generate_furniture_image(client, image, prompt)
 
