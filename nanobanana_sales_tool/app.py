@@ -146,11 +146,11 @@ def main():
         with col1:
             st.subheader("撮影/アップロードした写真 (Before)")
             image = Image.open(image_file)
-            st.image(image, use_container_width=True)
+            st.image(image, width='stretch')
 
         with col2:
             st.subheader("家具配置イメージ (After)")
-            generate_button = st.button("家具を配置する ✨", type="primary", use_container_width=True)
+            generate_button = st.button("家具を配置する ✨", type="primary", use_container_width=True) # NOTE: st.button does not support 'width' parameter yet in this version, so leaving use_container_width
 
             if generate_button:
                 if not prompt:
@@ -166,7 +166,7 @@ def main():
                         generated_image = generate_furniture_image(client, image, prompt)
 
                         if generated_image:
-                            st.image(generated_image, use_container_width=True)
+                            st.image(generated_image, width='stretch')
                             st.success("家具の配置イメージの生成が完了しました！")
                         else:
                             st.error("画像の生成に失敗しました。")
