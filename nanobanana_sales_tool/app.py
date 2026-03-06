@@ -100,21 +100,15 @@ def main():
     # 設定入力
     st.sidebar.header("⚙️ 設定 (Google Cloud)")
 
-    with st.sidebar.form(key='api_settings_form'):
-        api_key_input = st.text_input(
-            "Google Cloud APIキー:",
-            value=st.session_state['gemini_api_key'],
-            type="password",
-            help="Google Cloud Platform で取得したAPIキーを入力してください。"
-        )
+    # keyを指定することで自動的にst.session_state['gemini_api_key']と同期し、再起動(リロード)まで維持されます
+    st.sidebar.text_input(
+        "Google Cloud APIキー:",
+        type="password",
+        key="gemini_api_key",
+        help="Google Cloud Platform で取得したAPIキーを入力してください。一度入力すると、画面を閉じるまで保存されます。"
+    )
 
-        submit_api_settings = st.form_submit_button("APIキーを保存する")
-
-        if submit_api_settings:
-            st.session_state['gemini_api_key'] = api_key_input
-            st.sidebar.success("✅ APIキーを一時保存しました。")
-
-    current_api_key = st.session_state['gemini_api_key']
+    current_api_key = st.session_state.get('gemini_api_key', '')
 
     if not current_api_key:
         st.sidebar.warning("⚠️ テストモード(白黒変換)で動作します")
