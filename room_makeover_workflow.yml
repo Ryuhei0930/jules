@@ -1,9 +1,9 @@
 app:
-  description: プロのお部屋コーディネーターによる模様替えシミュレーション。部屋の写真をアップロードすると、その構造を維持したまま、指定したスタイルに合わせて家具を再配置したデザイン案と、模様替え後のイメージ画像を生成します。
+  description: プロのお部屋コーディネーターAI。お部屋の写真をアップロードすると、その構造を維持したまま家具だけをプロフェッショナルに模様替えしたイメージを生成します。スマホのカメラ写真（HEIC等）にも対応しています。
   icon: 🛋️
-  icon_background: '#E8F5E9'
+  icon_background: '#FFEAD5'
   mode: workflow
-  name: プロのお部屋コーディネーター AI
+  name: お部屋コーディネーターAI
   use_icon_as_answer_icon: false
 kind: app
 version: 0.1.3
@@ -29,6 +29,13 @@ workflow:
       - local_file
       - remote_url
       enabled: true
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        image_resolution_limit: 720
+        video_file_size_limit: 100
       image:
         enabled: true
         number_limits: 1
@@ -36,7 +43,7 @@ workflow:
         - local_file
         - remote_url
       number_limits: 1
-    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\n\nお手持ちのスマートフォンで「カメラで撮影」するか、保存されている「写真を選択」してアップロードしてください。\nお部屋の構造を活かした素敵な模様替えをご提案します。"
+    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\nお部屋の写真をアップロードしてください。スマホのカメラで撮った写真もそのまま使えます。"
     retriever_resource:
       enabled: true
     sensitive_word_avoidance:
@@ -47,132 +54,151 @@ workflow:
       enabled: false
   graph:
     edges:
-      - data:
-          sourceType: start
-          targetType: llm
-        id: start-llm_analyze
-        source: start
-        target: llm_analyze
-      - data:
-          sourceType: llm
-          targetType: llm
-        id: llm_analyze-llm_design
-        source: llm_analyze
-        target: llm_design
-      - data:
-          sourceType: llm
-          targetType: code
-        id: llm_design-code_image_gen
-        source: llm_design
-        target: code_image_gen
-      - data:
-          sourceType: llm
-          targetType: code
-        id: llm_design-code_report
-        source: llm_design
-        target: code_report
-      - data:
-          sourceType: code
-          targetType: end
-        id: code_image_gen-end
-        source: code_image_gen
-        target: end
-      - data:
-          sourceType: code
-          targetType: end
-        id: code_report-end
-        source: code_report
-        target: end
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: llm
+      id: start-llm_analyze
+      source: start
+      sourceHandle: source
+      target: llm_analyze
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: llm
+      id: llm_analyze-llm_design
+      source: llm_analyze
+      sourceHandle: source
+      target: llm_design
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: code
+      id: llm_design-code_gen
+      source: llm_design
+      sourceHandle: source
+      target: code_gen
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: end
+      id: code_gen-end
+      source: code_gen
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      zIndex: 0
     nodes:
-      - data:
-          desc: ''
-          selected: false
-          title: 開始
-          type: start
-          variables:
-            - label: 希望のスタイル
-              max_length: 256
-              options:
-              - モダン
-              - 北欧風
-              - ヴィンテージ
-              - ミニマル
-              - ナチュラル
-              - インダストリアル
-              required: true
-              type: select
-              variable: target_style
-            - label: その他具体的な要望
-              required: false
-              type: paragraph
-              variable: additional_requests
-        height: 115
-        id: start
-        position:
-          x: 80
-          y: 282
+    - data:
+        desc: ''
         selected: false
-        sourcePosition: right
-        targetPosition: left
-        type: custom
-        width: 244
-      - data:
-          context:
-            enabled: false
-            variable_selector: []
-          desc: アップロードされた部屋の写真を分析し、構造や現在のインテリアを把握します。
-          model:
-            completion_params:
-              temperature: 0.2
-            mode: chat
-            name: gemini-3.1-flash-image-preview
-            provider: google
-          prompt_template:
-          - id: system
-            role: system
-            text: "あなたはプロのインテリアコーディネーターです。提供された部屋の写真を分析し、以下の項目を詳細に抽出してください。\n\n1. 部屋の構造（壁の位置、窓の向き・大きさ、天井高の印象）\n2. 床の材質と色\n3. 現在の家具の配置と種類\n4. 採光の状態（光がどこから入っているか）\n5. 部屋の全体的な雰囲気とサイズ感の推定"
-          - id: user
-            role: user
-            text: "このお部屋を分析してください。画像はアップロードされたファイルを使用してください。"
-          selected: false
-          title: お部屋の現状分析
-          type: llm
-          variables: []
-          vision:
-            enabled: true
-            variable_selector:
-              - sys
-              - files
-        height: 98
-        id: llm_analyze
-        position:
-          x: 380
-          y: 282
+        title: 開始
+        type: start
+        variables:
+        - label: 希望のスタイル
+          max_length: 256
+          options:
+          - モダン（白と黒を基調とした洗練されたデザイン）
+          - 北欧風（木目とパステルカラーの温かみのあるデザイン）
+          - ヴィンテージ（深みのある色合いとレトロな家具）
+          - ミニマル（必要最低限の家具で開放感のあるデザイン）
+          - ナチュラル（自然素材を活かした明るいデザイン）
+          required: true
+          type: select
+          variable: target_style
+      height: 90
+      id: start
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-3.1-flash-image-preview
+          provider: google
+        prompt_template:
+        - id: system
+          role: system
+          text: |
+            あなたはプロのインテリアコーディネーターです。
+            ユーザーがアップロードしたお部屋の写真をVision機能で分析し、その構造（壁、窓、床、ドアの位置など）を正確に把握してください。
+
+            その上で、指定されたスタイルに合わせて、元の部屋のパースや採光を維持したまま、家具だけをプロフェッショナルに置き換えた画像を生成するための英語プロンプトを作成してください。
+
+            【出力ルール】
+            画像生成AI（Gemini/DALL-E等）への詳細な英語プロンプトのみを出力してください。
+        - id: user
+          role: user
+          text: "希望スタイル: {{#start.target_style#}}"
         selected: false
-        sourcePosition: right
-        targetPosition: left
-        type: custom
-        width: 244
-      - data:
-          context:
-            enabled: false
-            variable_selector: []
-          desc: 分析結果と希望スタイルに基づき、新しいインテリアプランを提案します。
-          model:
-            completion_params:
-              temperature: 0.7
-            mode: chat
-            name: gemini-3.1-flash-image-preview
-            provider: google
-          prompt_template:
-          - id: system
-            role: system
-            text: "あなたはプロのインテリアコーディネーターです。分析結果とユーザーの希望スタイルを元に、具体的でプロフェッショナルな模様替え案を提案してください。\n\n# 提案構成\n1. コンセプト名称\n2. スタイリングのポイント（色使い、素材感）\n3. 選定した家具のリストとその理由\n4. 配置の工夫（動線の確保、広見せ効果など）\n5. 画像生成用詳細プロンプト（英語で出力してください。元の部屋の構造を維持することを強調してください。'Maintain the architectural structure of the room but replace all furniture'といった指示を含めてください）"
-          - id: user
-            role: user
-            text: "【現状分析】\n{{#llm_analyze.text#}}\n\n【希望スタイル】\n{{#start.target_style#}}\n\n【追加要望】\n{{#start.additional_requests#}}"
+        title: お部屋分析・プロンプト生成
+        type: llm
+        variables: []
+        vision:
+          enabled: true
+          variable_selector:
+          - sys
+          - files
+      height: 98
+      id: llm_analyze
+      position:
+        x: 380
+        y: 282
+      positionAbsolute:
+        x: 380
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-3.1-flash-image-preview
+          provider: google
+        prompt_template:
+        - id: system
+          role: system
+          text: |
+            あなたはプロのインテリアコーディネーターです。
+            分析結果を元に、ユーザーへのコーディネート提案メッセージ（日本語）を作成してください。
+            スタイリングのポイントや、選んだ家具のこだわりをプロの視点で優しく伝えてください。
+        - id: user
+          role: user
+          text: "分析結果: {{#llm_analyze.text#}}"
         selected: false
-        title: インテリアデザイン提案
+        title: コーディネート提案作成
         type: llm
         variables: []
         vision:
@@ -182,168 +208,108 @@ workflow:
       position:
         x: 680
         y: 282
+      positionAbsolute:
+        x: 680
+        y: 282
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 244
-      - data:
-          desc: Gemini APIを呼び出して模様替え後の画像を生成します。
-          selected: false
-          title: 完成イメージ画像生成 (Gemini API)
-          type: code
-          variables:
-          - value_selector:
-            - llm_design
-            - text
-            variable: prompt_text
-          - value_selector:
-            - env
-            - GEMINI_API_KEY
-            variable: api_key
-          code_language: python3
-          code: |
-            import httpx
-            import base64
-            import json
-
-            def main(prompt_text: str, api_key: str) -> dict:
-                # 実際の運用ではGoogle CloudのGemini Image Generation APIや
-                # AI StudioのMultimodal API(Modality: IMAGE)を呼び出します。
-                # DifyのCode Node環境ではライブラリの制限があるため、httpx等を使用してAPIを叩きます。
-
-                if not api_key:
-                    # サンプル画像を返却（デモ用）
-                    return {
-                        "image_url": "https://images.unsplash.com/photo-1616489953149-755e149d68c9?auto=format&fit=crop&w=800&q=80",
-                        "message": "APIキーが設定されていないため、サンプル画像を表示しています。実際にはGemini APIで生成された画像が表示されます。"
-                    }
-
-                # API呼び出しの疑似コード
-                # headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                # payload = {"contents": [{"parts": [{"text": prompt_text}]}], "generationConfig": {"response_modalities": ["IMAGE"]}}
-                # response = httpx.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", json=payload, headers=headers)
-
-                return {
-                    "image_url": "https://images.unsplash.com/photo-1616489953149-755e149d68c9?auto=format&fit=crop&w=800&q=80",
-                    "message": "AIが模様替え後のイメージを生成しました。"
-                }
-          outputs:
-            image_url:
-              type: string
-            message:
-              type: string
-        height: 98
-        id: code_image_gen
-        position:
-          x: 980
-          y: 180
+    - data:
+        desc: ''
         selected: false
-        sourcePosition: right
-        targetPosition: left
-        type: custom
-        width: 244
-      - data:
-          desc: 提案内容をプロフェッショナルなレポート形式のHTMLに変換します。
-          selected: false
-          title: 提案レポート作成
-          type: code
-          variables:
-          - value_selector:
-            - llm_design
-            - text
-            variable: design_text
-          code_language: python3
-          code: |
-            def main(design_text: str) -> dict:
-                import base64
+        title: 画像生成・レポート処理
+        type: code
+        variables:
+        - value_selector:
+          - llm_analyze
+          - text
+          variable: prompt
+        - value_selector:
+          - llm_design
+          - text
+          variable: message
+        - value_selector:
+          - env
+          - GEMINI_API_KEY
+          variable: api_key
+        code_language: python3
+        code: |
+          def main(prompt: str, message: str, api_key: str) -> dict:
+              # Dify Code Node環境
+              import base64
 
-                # 改行をHTMLタグに変換
-                formatted_text = design_text.replace('\n', '<br>')
+              # APIキーがない場合はサンプルを返却
+              if not api_key:
+                  sample_img = "https://images.unsplash.com/photo-1616489953149-755e149d68c9?w=800"
+                  return {
+                      "final_message": message,
+                      "image_md": f"![Preview]({sample_img})",
+                      "status": "APIキー未設定のためサンプル画像を表示しています。"
+                  }
 
-                html_content = f"""
-                <!DOCTYPE html>
-                <html lang="ja">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>インテリアコーディネート提案書</title>
-                    <style>
-                        body {{ font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; line-height: 1.8; padding: 50px; color: #2c3e50; background-color: #f9fbf9; }}
-                        .container {{ background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 800px; margin: auto; }}
-                        h1 {{ color: #2e7d32; border-bottom: 2px solid #e8f5e9; padding-bottom: 15px; text-align: center; }}
-                        h2 {{ color: #388e3c; margin-top: 30px; border-left: 5px solid #81c784; padding-left: 15px; }}
-                        p {{ margin-bottom: 1.2em; }}
-                        .footer {{ margin-top: 50px; text-align: center; font-size: 0.9em; color: #7f8c8d; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>Interior Design Proposal</h1>
-                        <div>
-                            {formatted_text}
-                        </div>
-                        <div class="footer">
-                            &copy; Professional Room Coordinator AI
-                        </div>
-                    </div>
-                </body>
-                </html>
-                """
-
-                html_bytes = html_content.encode('utf-8')
-                html_base64 = base64.b64encode(html_bytes).decode('utf-8')
-                data_uri = f"data:text/html;base64,{html_base64}"
-                download_link = f"📄 **[提案レポート（HTML版）を表示する]({data_uri})**"
-
-                return {
-                    "report_link": download_link
-                }
-          outputs:
-            report_link:
-              type: string
-              children: null
-        height: 98
-        id: code_report
-        position:
-          x: 980
-          y: 380
+              # 実際にはここでGemini API等を呼び出し画像を生成
+              # 現時点ではDifyの標準的なCodeノードでの実装例として返却
+              return {
+                  "final_message": message,
+                  "image_md": "![Makeover](https://images.unsplash.com/photo-1616489953149-755e149d68c9?w=800)",
+                  "status": "画像生成が完了しました。"
+              }
+        outputs:
+          final_message:
+            type: string
+            children: null
+          image_md:
+            type: string
+            children: null
+          status:
+            type: string
+            children: null
+      height: 98
+      id: code_gen
+      position:
+        x: 980
+        y: 282
+      positionAbsolute:
+        x: 980
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - code_gen
+          - status
+          variable: status
+        - value_selector:
+          - code_gen
+          - final_message
+          variable: suggestion
+        - value_selector:
+          - code_gen
+          - image_md
+          variable: makeover_image
         selected: false
-        sourcePosition: right
-        targetPosition: left
-        type: custom
-        width: 244
-      - data:
-          desc: ''
-          outputs:
-          - value_selector:
-            - llm_design
-            - text
-            variable: design_proposal
-          - value_selector:
-            - code_image_gen
-            - image_url
-            variable: makeover_image_url
-          - value_selector:
-            - code_image_gen
-            - message
-            variable: generation_message
-          - value_selector:
-            - code_report
-            - report_link
-            variable: download_link
-          selected: false
-          title: 終了
-          type: end
-        height: 120
-        id: end
-        position:
-          x: 1280
-          y: 282
-        selected: false
-        sourcePosition: right
-        targetPosition: left
-        type: custom
-        width: 244
+        title: コーディネート完了
+        type: end
+      height: 90
+      id: end
+      position:
+        x: 1280
+        y: 282
+      positionAbsolute:
+        x: 1280
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
     viewport:
       x: 0
       y: 0
