@@ -1,18 +1,14 @@
 app:
-  description: プロのお部屋コーディネーターAI。お部屋の写真をチャットで送ると、その構造を維持したまま家具だけをプロフェッショナルに模様替えしたイメージを提案します。
+  description: プロのお部屋コーディネーターAI。お部屋の写真をアップロードすると、その構造を維持したまま家具だけをプロフェッショナルに模様替えした「新しい写真」を生成します。
   icon: 🛋️
   icon_background: '#FFEAD5'
   mode: advanced-chat
-  name: お部屋コーディネーターAI
+  name: お部屋コーディネーターAI (画像生成版)
   use_icon_as_answer_icon: false
 kind: app
 version: 0.1.2
 workflow:
-  environment_variables:
-  - id: '1'
-    name: GEMINI_API_KEY
-    value: ''
-    value_type: secret
+  environment_variables: []
   features:
     file_upload:
       allowed_file_extensions: [.JPG, .JPEG, .PNG, .WEBP, .HEIC, .HEIF]
@@ -24,7 +20,7 @@ workflow:
         number_limits: 1
         transfer_methods: [local_file, remote_url]
       number_limits: 1
-    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\n\n**【使い方】**\n1. チャット欄の左側にある**「＋」ボタン**、または**画像アイコン**をタップしてください。\n2. **「カメラで撮影」**または**「写真を選択」**してお部屋の写真を送ってください。\n3. 写真を送った後に、希望のスタイル（モダン、北欧風など）を教えてください。"
+    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\n\n**【画像生成の手順】**\n1. チャット欄の「＋」ボタンから、お部屋の写真を送ってください。\n2. 希望のスタイル（モダン、北欧風など）を選択してください。\n3. AIが分析を行い、新しいお部屋のイメージ写真を生成します！"
     retriever_resource: {enabled: true}
     sensitive_word_avoidance: {enabled: false}
     speech_to_text: {enabled: false}
@@ -39,17 +35,17 @@ workflow:
       targetHandle: target
       type: custom
       zIndex: 0
-    - data: {isInIteration: false, sourceType: llm, targetType: llm}
-      id: llm_analyze-llm_design
+    - data: {isInIteration: false, sourceType: llm, targetType: tool}
+      id: llm_analyze-tool_image
       source: llm_analyze
       sourceHandle: source
-      target: llm_design
+      target: tool_image
       targetHandle: target
       type: custom
       zIndex: 0
-    - data: {isInIteration: false, sourceType: llm, targetType: answer}
-      id: llm_design-answer
-      source: llm_design
+    - data: {isInIteration: false, sourceType: tool, targetType: answer}
+      id: tool_image-answer
+      source: tool_image
       sourceHandle: source
       target: answer
       targetHandle: target
@@ -63,7 +59,6 @@ workflow:
         type: start
         variables:
         - label: 希望のスタイル
-          max_length: 256
           options: [モダン, 北欧風, ヴィンテージ, ミニマル, ナチュラル]
           required: true
           type: select
@@ -86,12 +81,18 @@ workflow:
           role: system
           text: |
             あなたはプロのインテリアコーディネーターです。
-            Vision機能でお部屋の写真を分析し、その構造を維持したまま、指定されたスタイルに家具だけを置き換えた画像を生成するための英語プロンプトを作成してください。
+            ユーザーがアップロードしたお部屋の写真をVision機能で詳細に分析してください（壁の色、窓の位置、天井高、床の材質など）。
+
+            その情報を元に、指定されたスタイルに合わせて「模様替え後の新しい写真」を生成するための詳細な英語プロンプトを作成してください。
+            元の部屋の構造（建築的なレイアウト）は一切変更せず、家具、照明、装飾だけを高品質なものに置き換えるよう指示してください。
+
+            【出力ルール】
+            画像生成AIへの詳細な英語プロンプト（画像内の要素を具体的に描写したもの）のみを出力してください。
         - id: user
           role: user
           text: "スタイル: {{#start.target_style#}}"
         selected: false
-        title: お部屋分析
+        title: お部屋分析・プロンプト生成
         type: llm
         variables: []
         vision:
@@ -107,24 +108,22 @@ workflow:
       type: custom
       width: 244
     - data:
-        context: {enabled: false, variable_selector: []}
         desc: ''
-        model: {completion_params: {temperature: 0.7}, mode: chat, name: gemini-1.5-flash, provider: google}
-        prompt_template:
-        - id: system
-          role: system
-          text: |
-            プロのインテリアコーディネーターとして、分析結果に基づいた提案メッセージを作成してください。
-        - id: user
-          role: user
-          text: "分析結果: {{#llm_analyze.text#}}"
+        provider_id: openai
+        provider_name: openai
+        provider_type: builtin
         selected: false
-        title: 提案作成
-        type: llm
-        variables: []
-        vision: {enabled: false}
+        title: 画像生成 (DALL-E 3)
+        tool_label: DALL-E 3
+        tool_name: dalle3
+        tool_parameters:
+          prompt: '{{#llm_analyze.text#}}'
+          quality: hd
+          size: 1024x1024
+          style: vivid
+        type: tool
       height: 98
-      id: llm_design
+      id: tool_image
       position: {x: 680, y: 282}
       positionAbsolute: {x: 680, y: 282}
       selected: false
@@ -133,7 +132,7 @@ workflow:
       type: custom
       width: 244
     - data:
-        answer: "### 模様替えのご提案\n\n{{#llm_design.text#}}\n\n---\n※実際のお部屋を維持した画像生成には、Gemini 2.0 Flash等をお使いください。"
+        answer: "### 模様替え後のイメージ画像が完成しました！\n\n{{#tool_image.text#}}\n\n---\n元の部屋の構造を維持しながら、{{#start.target_style#}}スタイルで家具を新しくコーディネートしました。いかがでしょうか？"
         desc: ''
         selected: false
         title: 回答
