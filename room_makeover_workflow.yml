@@ -1,8 +1,8 @@
 app:
-  description: プロのお部屋コーディネーターAI。お部屋の写真をアップロードすると、その構造を維持したまま家具だけをプロフェッショナルに模様替えしたイメージを生成します。スマホのカメラ写真（HEIC等）にも対応しています。
+  description: プロのお部屋コーディネーターAI。お部屋の写真をアップロードすると、その構造を維持したまま家具だけをプロフェッショナルに模様替えしたイメージを提案します。スマホのカメラ写真（HEIC等）にも対応しています。
   icon: 🛋️
   icon_background: '#FFEAD5'
-  mode: workflow
+  mode: advanced-chat
   name: お部屋コーディネーターAI
   use_icon_as_answer_icon: false
 kind: app
@@ -29,13 +29,6 @@ workflow:
       - local_file
       - remote_url
       enabled: true
-      fileUploadConfig:
-        audio_file_size_limit: 50
-        batch_count_limit: 5
-        file_size_limit: 15
-        image_file_size_limit: 10
-        image_resolution_limit: 720
-        video_file_size_limit: 100
       image:
         enabled: true
         number_limits: 1
@@ -43,7 +36,7 @@ workflow:
         - local_file
         - remote_url
       number_limits: 1
-    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\nお部屋の写真をアップロードしてください。スマホのカメラで撮った写真もそのまま使えます。"
+    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\nお部屋の写真をアップロードしてください。スマホのカメラで撮った写真もそのまま使えます。\n次に希望のスタイルを選んでメッセージを送ってください。"
     retriever_resource:
       enabled: true
     sensitive_word_avoidance:
@@ -90,11 +83,11 @@ workflow:
     - data:
         isInIteration: false
         sourceType: code
-        targetType: end
-      id: code_gen-end
+        targetType: answer
+      id: code_gen-answer
       source: code_gen
       sourceHandle: source
-      target: end
+      target: answer
       targetHandle: target
       type: custom
       zIndex: 0
@@ -105,6 +98,10 @@ workflow:
         title: 開始
         type: start
         variables:
+        - label: お部屋の画像
+          required: true
+          type: image
+          variable: room_image
         - label: 希望のスタイル
           max_length: 256
           options:
@@ -138,7 +135,7 @@ workflow:
           completion_params:
             temperature: 0.7
           mode: chat
-          name: gemini-3.1-flash-image-preview
+          name: gemini-1.5-flash
           provider: google
         prompt_template:
         - id: system
@@ -161,8 +158,8 @@ workflow:
         vision:
           enabled: true
           variable_selector:
-          - sys
-          - files
+          - start
+          - room_image
       height: 98
       id: llm_analyze
       position:
@@ -185,7 +182,7 @@ workflow:
           completion_params:
             temperature: 0.7
           mode: chat
-          name: gemini-3.1-flash-image-preview
+          name: gemini-1.5-flash
           provider: google
         prompt_template:
         - id: system
@@ -237,9 +234,6 @@ workflow:
         code_language: python3
         code: |
           def main(prompt: str, message: str, api_key: str) -> dict:
-              # Dify Code Node環境
-              import base64
-
               # APIキーがない場合はサンプルを返却
               if not api_key:
                   sample_img = "https://images.unsplash.com/photo-1616489953149-755e149d68c9?w=800"
@@ -249,8 +243,6 @@ workflow:
                       "status": "APIキー未設定のためサンプル画像を表示しています。"
                   }
 
-              # 実際にはここでGemini API等を呼び出し画像を生成
-              # 現時点ではDifyの標準的なCodeノードでの実装例として返却
               return {
                   "final_message": message,
                   "image_md": "![Makeover](https://images.unsplash.com/photo-1616489953149-755e149d68c9?w=800)",
@@ -259,13 +251,10 @@ workflow:
         outputs:
           final_message:
             type: string
-            children: null
           image_md:
             type: string
-            children: null
           status:
             type: string
-            children: null
       height: 98
       id: code_gen
       position:
@@ -280,25 +269,14 @@ workflow:
       type: custom
       width: 244
     - data:
+        answer: "### {{#code_gen.status#}}\n\n{{#code_gen.image_md#}}\n\n---\n\n{{#code_gen.final_message#}}"
         desc: ''
-        outputs:
-        - value_selector:
-          - code_gen
-          - status
-          variable: status
-        - value_selector:
-          - code_gen
-          - final_message
-          variable: suggestion
-        - value_selector:
-          - code_gen
-          - image_md
-          variable: makeover_image
         selected: false
-        title: コーディネート完了
-        type: end
-      height: 90
-      id: end
+        title: 回答
+        type: answer
+        variables: []
+      height: 103
+      id: answer
       position:
         x: 1280
         y: 282
