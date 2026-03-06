@@ -21,6 +21,8 @@ workflow:
       - .JPEG
       - .PNG
       - .WEBP
+      - .HEIC
+      - .HEIF
       allowed_file_types:
       - image
       allowed_upload_methods:
@@ -34,7 +36,7 @@ workflow:
         - local_file
         - remote_url
       number_limits: 1
-    opening_statement: ''
+    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\n\nお手持ちのスマートフォンで「カメラで撮影」するか、保存されている「写真を選択」してアップロードしてください。\nお部屋の構造を活かした素敵な模様替えをご提案します。"
     retriever_resource:
       enabled: true
     sensitive_word_avoidance:
