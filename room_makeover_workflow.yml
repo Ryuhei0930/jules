@@ -1,5 +1,5 @@
 app:
-  description: プロのお部屋コーディネーターAI。お部屋の写真をアップロードすると、その構造を維持したまま家具だけをプロフェッショナルに模様替えしたイメージを提案します。スマホのカメラ写真（HEIC等）にも対応しています。
+  description: プロのお部屋コーディネーターAI。お部屋の写真をチャットで送ると、その構造を維持したまま家具だけをプロフェッショナルに模様替えしたイメージを提案します。スマホのカメラ写真（HEIC等）にも対応しています。
   icon: 🛋️
   icon_background: '#FFEAD5'
   mode: advanced-chat
@@ -36,7 +36,7 @@ workflow:
         - local_file
         - remote_url
       number_limits: 1
-    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\nお部屋の写真をアップロードしてください。スマホのカメラで撮った写真もそのまま使えます。\n次に希望のスタイルを選んでメッセージを送ってください。"
+    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\n\n**【使い方】**\n1. チャット入力欄の横にある**「＋」ボタン**、または**画像アイコン**をタップしてください。\n2. **「カメラで撮影」**または**「写真を選択」**してお部屋の写真を送ってください。\n3. 写真を送る際（または送った後）に、希望のスタイル（モダン、北欧風など）を教えてください。"
     retriever_resource:
       enabled: true
     sensitive_word_avoidance:
@@ -98,18 +98,14 @@ workflow:
         title: 開始
         type: start
         variables:
-        - label: お部屋の画像
-          required: true
-          type: image
-          variable: room_image
         - label: 希望のスタイル
           max_length: 256
           options:
-          - モダン（白と黒を基調とした洗練されたデザイン）
-          - 北欧風（木目とパステルカラーの温かみのあるデザイン）
-          - ヴィンテージ（深みのある色合いとレトロな家具）
-          - ミニマル（必要最低限の家具で開放感のあるデザイン）
-          - ナチュラル（自然素材を活かした明るいデザイン）
+          - モダン
+          - 北欧風
+          - ヴィンテージ
+          - ミニマル
+          - ナチュラル
           required: true
           type: select
           variable: target_style
@@ -142,24 +138,23 @@ workflow:
           role: system
           text: |
             あなたはプロのインテリアコーディネーターです。
-            ユーザーがアップロードしたお部屋の写真をVision機能で分析し、その構造（壁、窓、床、ドアの位置など）を正確に把握してください。
-
-            その上で、指定されたスタイルに合わせて、元の部屋のパースや採光を維持したまま、家具だけをプロフェッショナルに置き換えた画像を生成するための英語プロンプトを作成してください。
+            ユーザーがチャットでアップロードしたお部屋の写真をVision機能で分析してください。
+            元の部屋の構造（壁、窓、床、ドアの位置など）を正確に把握し、指定されたスタイルに合わせて家具だけを置き換えるための詳細な英語プロンプトを作成してください。
 
             【出力ルール】
-            画像生成AI（Gemini/DALL-E等）への詳細な英語プロンプトのみを出力してください。
+            画像生成AIへの詳細な英語プロンプトのみを出力してください。
         - id: user
           role: user
           text: "希望スタイル: {{#start.target_style#}}"
         selected: false
-        title: お部屋分析・プロンプト生成
+        title: お部屋分析
         type: llm
         variables: []
         vision:
           enabled: true
           variable_selector:
-          - start
-          - room_image
+          - sys
+          - files
       height: 98
       id: llm_analyze
       position:
@@ -188,14 +183,12 @@ workflow:
         - id: system
           role: system
           text: |
-            あなたはプロのインテリアコーディネーターです。
-            分析結果を元に、ユーザーへのコーディネート提案メッセージ（日本語）を作成してください。
-            スタイリングのポイントや、選んだ家具のこだわりをプロの視点で優しく伝えてください。
+            プロのインテリアコーディネーターとして、分析結果に基づいたユーザーへの提案メッセージ（日本語）を作成してください。
         - id: user
           role: user
           text: "分析結果: {{#llm_analyze.text#}}"
         selected: false
-        title: コーディネート提案作成
+        title: 提案作成
         type: llm
         variables: []
         vision:
@@ -216,7 +209,7 @@ workflow:
     - data:
         desc: ''
         selected: false
-        title: 画像生成・レポート処理
+        title: 処理
         type: code
         variables:
         - value_selector:
@@ -234,15 +227,7 @@ workflow:
         code_language: python3
         code: |
           def main(prompt: str, message: str, api_key: str) -> dict:
-              # APIキーがない場合はサンプルを返却
-              if not api_key:
-                  sample_img = "https://images.unsplash.com/photo-1616489953149-755e149d68c9?w=800"
-                  return {
-                      "final_message": message,
-                      "image_md": f"![Preview]({sample_img})",
-                      "status": "APIキー未設定のためサンプル画像を表示しています。"
-                  }
-
+              # サンプル画像を返却
               return {
                   "final_message": message,
                   "image_md": "![Makeover](https://images.unsplash.com/photo-1616489953149-755e149d68c9?w=800)",
