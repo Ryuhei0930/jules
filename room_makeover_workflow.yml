@@ -1,14 +1,13 @@
 app:
-  description: プロのお部屋コーディネーターAI。お部屋の写真をチャットで送ると、その構造を維持したまま家具だけをプロフェッショナルに模様替えしたイメージを提案します。スマホのカメラ写真（HEIC等）にも対応しています。
+  description: プロのお部屋コーディネーターAI。お部屋の写真をチャットで送ると、その構造を維持したまま家具だけをプロフェッショナルに模様替えしたイメージを提案します。
   icon: 🛋️
   icon_background: '#FFEAD5'
   mode: advanced-chat
   name: お部屋コーディネーターAI
   use_icon_as_answer_icon: false
 kind: app
-version: 0.1.3
+version: 0.1.2
 workflow:
-  conversation_variables: []
   environment_variables:
   - id: '1'
     name: GEMINI_API_KEY
@@ -16,41 +15,23 @@ workflow:
     value_type: secret
   features:
     file_upload:
-      allowed_file_extensions:
-      - .JPG
-      - .JPEG
-      - .PNG
-      - .WEBP
-      - .HEIC
-      - .HEIF
-      allowed_file_types:
-      - image
-      allowed_upload_methods:
-      - local_file
-      - remote_url
+      allowed_file_extensions: [.JPG, .JPEG, .PNG, .WEBP, .HEIC, .HEIF]
+      allowed_file_types: [image]
+      allowed_upload_methods: [local_file, remote_url]
       enabled: true
       image:
         enabled: true
         number_limits: 1
-        transfer_methods:
-        - local_file
-        - remote_url
+        transfer_methods: [local_file, remote_url]
       number_limits: 1
-    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\n\n**【使い方】**\n1. チャット入力欄の横にある**「＋」ボタン**、または**画像アイコン**をタップしてください。\n2. **「カメラで撮影」**または**「写真を選択」**してお部屋の写真を送ってください。\n3. 写真を送る際（または送った後）に、希望のスタイル（モダン、北欧風など）を教えてください。"
-    retriever_resource:
-      enabled: true
-    sensitive_word_avoidance:
-      enabled: false
-    speech_to_text:
-      enabled: false
-    text_to_speech:
-      enabled: false
+    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\n\n**【使い方】**\n1. チャット欄の左側にある**「＋」ボタン**、または**画像アイコン**をタップしてください。\n2. **「カメラで撮影」**または**「写真を選択」**してお部屋の写真を送ってください。\n3. 写真を送った後に、希望のスタイル（モダン、北欧風など）を教えてください。"
+    retriever_resource: {enabled: true}
+    sensitive_word_avoidance: {enabled: false}
+    speech_to_text: {enabled: false}
+    text_to_speech: {enabled: false}
   graph:
     edges:
-    - data:
-        isInIteration: false
-        sourceType: start
-        targetType: llm
+    - data: {isInIteration: false, sourceType: start, targetType: llm}
       id: start-llm_analyze
       source: start
       sourceHandle: source
@@ -58,10 +39,7 @@ workflow:
       targetHandle: target
       type: custom
       zIndex: 0
-    - data:
-        isInIteration: false
-        sourceType: llm
-        targetType: llm
+    - data: {isInIteration: false, sourceType: llm, targetType: llm}
       id: llm_analyze-llm_design
       source: llm_analyze
       sourceHandle: source
@@ -69,23 +47,9 @@ workflow:
       targetHandle: target
       type: custom
       zIndex: 0
-    - data:
-        isInIteration: false
-        sourceType: llm
-        targetType: code
-      id: llm_design-code_gen
+    - data: {isInIteration: false, sourceType: llm, targetType: answer}
+      id: llm_design-answer
       source: llm_design
-      sourceHandle: source
-      target: code_gen
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        sourceType: code
-        targetType: answer
-      id: code_gen-answer
-      source: code_gen
       sourceHandle: source
       target: answer
       targetHandle: target
@@ -100,90 +64,57 @@ workflow:
         variables:
         - label: 希望のスタイル
           max_length: 256
-          options:
-          - モダン
-          - 北欧風
-          - ヴィンテージ
-          - ミニマル
-          - ナチュラル
+          options: [モダン, 北欧風, ヴィンテージ, ミニマル, ナチュラル]
           required: true
           type: select
           variable: target_style
       height: 90
       id: start
-      position:
-        x: 80
-        y: 282
-      positionAbsolute:
-        x: 80
-        y: 282
+      position: {x: 80, y: 282}
+      positionAbsolute: {x: 80, y: 282}
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 244
     - data:
-        context:
-          enabled: false
-          variable_selector: []
+        context: {enabled: false, variable_selector: []}
         desc: ''
-        model:
-          completion_params:
-            temperature: 0.7
-          mode: chat
-          name: gemini-1.5-flash
-          provider: google
+        model: {completion_params: {temperature: 0.7}, mode: chat, name: gemini-1.5-flash, provider: google}
         prompt_template:
         - id: system
           role: system
           text: |
             あなたはプロのインテリアコーディネーターです。
-            ユーザーがチャットでアップロードしたお部屋の写真をVision機能で分析してください。
-            元の部屋の構造（壁、窓、床、ドアの位置など）を正確に把握し、指定されたスタイルに合わせて家具だけを置き換えるための詳細な英語プロンプトを作成してください。
-
-            【出力ルール】
-            画像生成AIへの詳細な英語プロンプトのみを出力してください。
+            Vision機能でお部屋の写真を分析し、その構造を維持したまま、指定されたスタイルに家具だけを置き換えた画像を生成するための英語プロンプトを作成してください。
         - id: user
           role: user
-          text: "希望スタイル: {{#start.target_style#}}"
+          text: "スタイル: {{#start.target_style#}}"
         selected: false
         title: お部屋分析
         type: llm
         variables: []
         vision:
           enabled: true
-          variable_selector:
-          - sys
-          - files
+          variable_selector: [sys, files]
       height: 98
       id: llm_analyze
-      position:
-        x: 380
-        y: 282
-      positionAbsolute:
-        x: 380
-        y: 282
+      position: {x: 380, y: 282}
+      positionAbsolute: {x: 380, y: 282}
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 244
     - data:
-        context:
-          enabled: false
-          variable_selector: []
+        context: {enabled: false, variable_selector: []}
         desc: ''
-        model:
-          completion_params:
-            temperature: 0.7
-          mode: chat
-          name: gemini-1.5-flash
-          provider: google
+        model: {completion_params: {temperature: 0.7}, mode: chat, name: gemini-1.5-flash, provider: google}
         prompt_template:
         - id: system
           role: system
           text: |
-            プロのインテリアコーディネーターとして、分析結果に基づいたユーザーへの提案メッセージ（日本語）を作成してください。
+            プロのインテリアコーディネーターとして、分析結果に基づいた提案メッセージを作成してください。
         - id: user
           role: user
           text: "分析結果: {{#llm_analyze.text#}}"
@@ -191,70 +122,18 @@ workflow:
         title: 提案作成
         type: llm
         variables: []
-        vision:
-          enabled: false
+        vision: {enabled: false}
       height: 98
       id: llm_design
-      position:
-        x: 680
-        y: 282
-      positionAbsolute:
-        x: 680
-        y: 282
+      position: {x: 680, y: 282}
+      positionAbsolute: {x: 680, y: 282}
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 244
     - data:
-        desc: ''
-        selected: false
-        title: 処理
-        type: code
-        variables:
-        - value_selector:
-          - llm_analyze
-          - text
-          variable: prompt
-        - value_selector:
-          - llm_design
-          - text
-          variable: message
-        - value_selector:
-          - env
-          - GEMINI_API_KEY
-          variable: api_key
-        code_language: python3
-        code: |
-          def main(prompt: str, message: str, api_key: str) -> dict:
-              # サンプル画像を返却
-              return {
-                  "final_message": message,
-                  "image_md": "![Makeover](https://images.unsplash.com/photo-1616489953149-755e149d68c9?w=800)",
-                  "status": "画像生成が完了しました。"
-              }
-        outputs:
-          final_message:
-            type: string
-          image_md:
-            type: string
-          status:
-            type: string
-      height: 98
-      id: code_gen
-      position:
-        x: 980
-        y: 282
-      positionAbsolute:
-        x: 980
-        y: 282
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 244
-    - data:
-        answer: "### {{#code_gen.status#}}\n\n{{#code_gen.image_md#}}\n\n---\n\n{{#code_gen.final_message#}}"
+        answer: "### 模様替えのご提案\n\n{{#llm_design.text#}}\n\n---\n※実際のお部屋を維持した画像生成には、Gemini 2.0 Flash等をお使いください。"
         desc: ''
         selected: false
         title: 回答
@@ -262,18 +141,11 @@ workflow:
         variables: []
       height: 103
       id: answer
-      position:
-        x: 1280
-        y: 282
-      positionAbsolute:
-        x: 1280
-        y: 282
+      position: {x: 980, y: 282}
+      positionAbsolute: {x: 980, y: 282}
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 244
-    viewport:
-      x: 0
-      y: 0
-      zoom: 1
+    viewport: {x: 0, y: 0, zoom: 1}
