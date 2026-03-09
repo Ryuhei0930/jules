@@ -8,30 +8,43 @@ st.set_page_config(page_title="AutoBlog AI Generator", page_icon="🤖", layout=
 st.title("🤖 AI News AutoBlog Generator")
 st.markdown("最新のAIニュースを取得し、3つのAIモデル（Gemini, Claude, ChatGPT）の討論形式ブログを自動生成してnoteに下書き保存します。")
 
+# --- セッションステートの初期化 ---
+def init_session_state(key, default_val):
+    if key not in st.session_state:
+        st.session_state[key] = os.getenv(key, default_val)
+
+init_session_state("GEMINI_API_KEY", "")
+init_session_state("ANTHROPIC_API_KEY", "")
+init_session_state("OPENAI_API_KEY", "")
+init_session_state("NOTE_EMAIL", "")
+init_session_state("NOTE_PASSWORD", "")
+init_session_state("RSS_URL", "https://feeds.feedburner.com/TechCrunch/")
+
 # --- サイドバー設定 ---
 with st.sidebar:
     st.header("⚙️ 設定 (Settings)")
+    st.markdown("ここで入力した値は、アプリをリロード・再起動するまで保持されます。")
 
     st.subheader("API Keys")
-    gemini_key = st.text_input("Gemini API Key", value=os.getenv("GEMINI_API_KEY", ""), type="password")
-    anthropic_key = st.text_input("Anthropic API Key", value=os.getenv("ANTHROPIC_API_KEY", ""), type="password")
-    openai_key = st.text_input("OpenAI API Key", value=os.getenv("OPENAI_API_KEY", ""), type="password")
-    grok_key = st.text_input("Grok API Key (Optional)", value=os.getenv("GROK_API_KEY", ""), type="password")
+    gemini_key = st.text_input("Gemini API Key", key="GEMINI_API_KEY", type="password")
+    anthropic_key = st.text_input("Anthropic API Key", key="ANTHROPIC_API_KEY", type="password")
+    openai_key = st.text_input("OpenAI API Key", key="OPENAI_API_KEY", type="password")
 
     st.subheader("Note Credentials")
-    note_email = st.text_input("Note Email", value=os.getenv("NOTE_EMAIL", ""))
-    note_password = st.text_input("Note Password", value=os.getenv("NOTE_PASSWORD", ""), type="password")
+    note_email = st.text_input("Note Email", key="NOTE_EMAIL")
+    note_password = st.text_input("Note Password", key="NOTE_PASSWORD", type="password")
 
     st.subheader("RSS Feed")
-    rss_url = st.text_input("RSS URL", value=os.getenv("RSS_URL", "https://feeds.feedburner.com/TechCrunch/"))
+    rss_url = st.text_input("RSS URL", key="RSS_URL")
 
 # --- 環境変数の更新（実行時用） ---
-os.environ["GEMINI_API_KEY"] = gemini_key
-os.environ["ANTHROPIC_API_KEY"] = anthropic_key
-os.environ["OPENAI_API_KEY"] = openai_key
-os.environ["NOTE_EMAIL"] = note_email
-os.environ["NOTE_PASSWORD"] = note_password
-os.environ["RSS_URL"] = rss_url
+# main.py の get_config が os.getenv を使うため、session_stateの値をos.environに反映させる
+os.environ["GEMINI_API_KEY"] = st.session_state["GEMINI_API_KEY"]
+os.environ["ANTHROPIC_API_KEY"] = st.session_state["ANTHROPIC_API_KEY"]
+os.environ["OPENAI_API_KEY"] = st.session_state["OPENAI_API_KEY"]
+os.environ["NOTE_EMAIL"] = st.session_state["NOTE_EMAIL"]
+os.environ["NOTE_PASSWORD"] = st.session_state["NOTE_PASSWORD"]
+os.environ["RSS_URL"] = st.session_state["RSS_URL"]
 
 # --- メイン実行エリア ---
 st.header("🚀 ブログ生成と投稿")

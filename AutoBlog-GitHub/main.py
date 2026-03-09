@@ -104,7 +104,11 @@ def generate_content(entry):
         print(f"Claude Error: {e}")
         dialogue = "対話の生成に失敗しました。"
 
-    # 3. ChatGPT Image Prompt
+    # 3 & 4. ChatGPT Image Prompt & DALL-E Image Generation
+    client_openai = None
+    image_prompt = "Futuristic AI technology abstract illustration"
+    image_path = "generated_image.png"
+
     try:
         openai_api_key = get_config("OPENAI_API_KEY")
         if not openai_api_key:
@@ -128,27 +132,28 @@ def generate_content(entry):
         image_prompt = completion.choices[0].message.content
     except Exception as e:
         print(f"ChatGPT Error: {e}")
-        image_prompt = "Futuristic AI technology abstract illustration"
 
-    # 4. Generate Image
-    image_path = "generated_image.png"
-    try:
-        response = client_openai.images.generate(
-            model=IMAGE_MODEL,
-            prompt=image_prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1,
-        )
-        image_url = response.data[0].url
+    # Generate Image only if client was successfully initialized
+    if client_openai:
+        try:
+            response = client_openai.images.generate(
+                model=IMAGE_MODEL,
+                prompt=image_prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            image_url = response.data[0].url
 
-        # Download Image
-        img_data = requests.get(image_url).content
-        with open(image_path, 'wb') as handler:
-            handler.write(img_data)
+            # Download Image
+            img_data = requests.get(image_url).content
+            with open(image_path, 'wb') as handler:
+                handler.write(img_data)
 
-    except Exception as e:
-        print(f"DALL-E Error: {e}")
+        except Exception as e:
+            print(f"DALL-E Error: {e}")
+            image_path = None
+    else:
         image_path = None
 
     final_content = f"""

@@ -21,7 +21,6 @@
     *   Google Gemini API Key
     *   Anthropic API Key (Claude)
     *   OpenAI API Key (ChatGPT/DALL-E)
-    *   (Optional) Grok API Key
 
 3.  **GitHub Secretsの設定**:
     *   リポジトリの `Settings` > `Secrets and variables` > `Actions` に移動します。
@@ -32,7 +31,6 @@
         *   `OPENAI_API_KEY`: 取得したOpenAI APIキー
         *   `NOTE_EMAIL`: note.comのログインメールアドレス
         *   `NOTE_PASSWORD`: note.comのログインパスワード
-        *   `GROK_API_KEY`: (任意) Grok APIキー
 
 4.  **スマホからの実行方法**:
     *   GitHubモバイルアプリをインストールしてログインします。
