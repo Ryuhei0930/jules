@@ -23,28 +23,43 @@ init_session_state("RSS_URL", "https://feeds.feedburner.com/TechCrunch/")
 # --- サイドバー設定 ---
 with st.sidebar:
     st.header("⚙️ 設定 (Settings)")
-    st.markdown("ここで入力した値は、アプリをリロード・再起動するまで保持されます。")
+    st.markdown("ここで入力した値は、アプリを再起動するまで保持されます。")
 
-    st.subheader("API Keys")
-    gemini_key = st.text_input("Gemini API Key", key="GEMINI_API_KEY", type="password")
-    anthropic_key = st.text_input("Anthropic API Key", key="ANTHROPIC_API_KEY", type="password")
-    openai_key = st.text_input("OpenAI API Key", key="OPENAI_API_KEY", type="password")
+    # フォームを使って入力値の反映を明示的な「保存」ボタンに限定する
+    with st.form("settings_form"):
+        st.subheader("API Keys")
+        gemini_key = st.text_input("Gemini API Key", value=st.session_state["GEMINI_API_KEY"], type="password")
+        anthropic_key = st.text_input("Anthropic API Key", value=st.session_state["ANTHROPIC_API_KEY"], type="password")
+        openai_key = st.text_input("OpenAI API Key", value=st.session_state["OPENAI_API_KEY"], type="password")
 
-    st.subheader("Note Credentials")
-    note_email = st.text_input("Note Email", key="NOTE_EMAIL")
-    note_password = st.text_input("Note Password", key="NOTE_PASSWORD", type="password")
+        st.subheader("Note Credentials")
+        note_email = st.text_input("Note Email", value=st.session_state["NOTE_EMAIL"])
+        note_password = st.text_input("Note Password", value=st.session_state["NOTE_PASSWORD"], type="password")
 
-    st.subheader("RSS Feed")
-    rss_url = st.text_input("RSS URL", key="RSS_URL")
+        st.subheader("RSS Feed")
+        rss_url = st.text_input("RSS URL", value=st.session_state["RSS_URL"])
+
+        # 保存ボタン
+        submitted = st.form_submit_button("設定を保存")
+
+    if submitted:
+        # ボタンが押されたらセッションステートを更新
+        st.session_state["GEMINI_API_KEY"] = gemini_key
+        st.session_state["ANTHROPIC_API_KEY"] = anthropic_key
+        st.session_state["OPENAI_API_KEY"] = openai_key
+        st.session_state["NOTE_EMAIL"] = note_email
+        st.session_state["NOTE_PASSWORD"] = note_password
+        st.session_state["RSS_URL"] = rss_url
+        st.success("設定を保存しました！")
 
 # --- 環境変数の更新（実行時用） ---
 # main.py の get_config が os.getenv を使うため、session_stateの値をos.environに反映させる
-os.environ["GEMINI_API_KEY"] = st.session_state["GEMINI_API_KEY"]
-os.environ["ANTHROPIC_API_KEY"] = st.session_state["ANTHROPIC_API_KEY"]
-os.environ["OPENAI_API_KEY"] = st.session_state["OPENAI_API_KEY"]
-os.environ["NOTE_EMAIL"] = st.session_state["NOTE_EMAIL"]
-os.environ["NOTE_PASSWORD"] = st.session_state["NOTE_PASSWORD"]
-os.environ["RSS_URL"] = st.session_state["RSS_URL"]
+os.environ["GEMINI_API_KEY"] = st.session_state.get("GEMINI_API_KEY", "")
+os.environ["ANTHROPIC_API_KEY"] = st.session_state.get("ANTHROPIC_API_KEY", "")
+os.environ["OPENAI_API_KEY"] = st.session_state.get("OPENAI_API_KEY", "")
+os.environ["NOTE_EMAIL"] = st.session_state.get("NOTE_EMAIL", "")
+os.environ["NOTE_PASSWORD"] = st.session_state.get("NOTE_PASSWORD", "")
+os.environ["RSS_URL"] = st.session_state.get("RSS_URL", "")
 
 # --- メイン実行エリア ---
 st.header("🚀 ブログ生成と投稿")
