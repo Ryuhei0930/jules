@@ -13,13 +13,10 @@ from playwright.async_api import async_playwright
 # Load environment variables
 load_dotenv()
 
-# Configuration
-RSS_URL = os.getenv("RSS_URL", "https://feeds.feedburner.com/TechCrunch/")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-NOTE_EMAIL = os.getenv("NOTE_EMAIL")
-NOTE_PASSWORD = os.getenv("NOTE_PASSWORD")
+def get_config(key, default=""):
+    return os.getenv(key, default)
+
+# Models
 
 # Models
 GEMINI_MODEL = "gemini-3-flash-preview"
@@ -28,8 +25,9 @@ GPT_MODEL = "gpt-5-mini-2025-08-07"
 IMAGE_MODEL = "dall-e-3"
 
 def fetch_rss():
-    print(f"Fetching RSS from {RSS_URL}...")
-    feed = feedparser.parse(RSS_URL)
+    rss_url = get_config("RSS_URL", "https://feeds.feedburner.com/TechCrunch/")
+    print(f"Fetching RSS from {rss_url}...")
+    feed = feedparser.parse(rss_url)
     if not feed.entries:
         print("No entries found.")
         return None
@@ -40,7 +38,10 @@ def generate_content(entry):
 
     # 1. Gemini Summary
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_api_key = get_config("GEMINI_API_KEY")
+        if not gemini_api_key:
+            raise ValueError("GEMINI_API_KEY is not set")
+        genai.configure(api_key=gemini_api_key)
         model = genai.GenerativeModel(GEMINI_MODEL)
 
         summary_prompt = f"""
@@ -59,7 +60,10 @@ def generate_content(entry):
 
     # 2. Claude Dialogue
     try:
-        client_anthropic = Anthropic(api_key=ANTHROPIC_API_KEY)
+        anthropic_api_key = get_config("ANTHROPIC_API_KEY")
+        if not anthropic_api_key:
+            raise ValueError("ANTHROPIC_API_KEY is not set")
+        client_anthropic = Anthropic(api_key=anthropic_api_key)
 
         dialogue_prompt = f"""
         あなたはAIニュース解説ブログの編集長です。
@@ -102,7 +106,10 @@ def generate_content(entry):
 
     # 3. ChatGPT Image Prompt
     try:
-        client_openai = OpenAI(api_key=OPENAI_API_KEY)
+        openai_api_key = get_config("OPENAI_API_KEY")
+        if not openai_api_key:
+            raise ValueError("OPENAI_API_KEY is not set")
+        client_openai = OpenAI(api_key=openai_api_key)
 
         image_prompt_gen_prompt = f"""
         以下のAI討論記事の内容を象徴する、ブログのアイキャッチ画像のプロンプト（英語）を作成してください。
@@ -160,6 +167,12 @@ def generate_content(entry):
     return entry.title, final_content, image_path
 
 async def post_to_note(title, content, image_path):
+    note_email = get_config("NOTE_EMAIL")
+    note_password = get_config("NOTE_PASSWORD")
+    if not note_email or not note_password:
+        print("Note credentials missing.")
+        return
+
     print("Starting Playwright automation for Note...")
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -170,8 +183,8 @@ async def post_to_note(title, content, image_path):
         try:
             print("Logging in...")
             await page.goto("https://note.com/login")
-            await page.fill('input[name="email"]', NOTE_EMAIL)
-            await page.fill('input[name="password"]', NOTE_PASSWORD)
+            await page.fill('input[name="email"]', note_email)
+            await page.fill('input[name="password"]', note_password)
             await page.click('button[data-id="login_button"]')
 
             # Wait for login to complete (check for avatar or home feed)
