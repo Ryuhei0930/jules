@@ -2,8 +2,54 @@ import streamlit as st
 import asyncio
 from main import fetch_rss, generate_content, post_to_note
 import os
+import google.generativeai as genai
+from openai import OpenAI
+from anthropic import Anthropic
 
 st.set_page_config(page_title="AutoBlog AI Generator", page_icon="🤖", layout="wide")
+
+def verify_api_keys(gemini_key, anthropic_key, openai_key):
+    results = {}
+
+    # Verify Gemini
+    try:
+        if gemini_key:
+            genai.configure(api_key=gemini_key)
+            model = genai.GenerativeModel("gemini-1.5-flash") # Use a fast/standard model for checking
+            model.generate_content("test")
+            results["Gemini"] = {"status": "✅ OK", "error": None}
+        else:
+            results["Gemini"] = {"status": "⚠️ 未入力", "error": None}
+    except Exception as e:
+        results["Gemini"] = {"status": "❌ エラー", "error": str(e)}
+
+    # Verify Anthropic
+    try:
+        if anthropic_key:
+            client = Anthropic(api_key=anthropic_key)
+            client.messages.create(
+                model="claude-3-haiku-20240307", # Use a fast model for checking
+                max_tokens=5,
+                messages=[{"role": "user", "content": "test"}]
+            )
+            results["Anthropic"] = {"status": "✅ OK", "error": None}
+        else:
+            results["Anthropic"] = {"status": "⚠️ 未入力", "error": None}
+    except Exception as e:
+        results["Anthropic"] = {"status": "❌ エラー", "error": str(e)}
+
+    # Verify OpenAI
+    try:
+        if openai_key:
+            client = OpenAI(api_key=openai_key)
+            client.models.list() # Lightest API call to verify key
+            results["OpenAI"] = {"status": "✅ OK", "error": None}
+        else:
+            results["OpenAI"] = {"status": "⚠️ 未入力", "error": None}
+    except Exception as e:
+        results["OpenAI"] = {"status": "❌ エラー", "error": str(e)}
+
+    return results
 
 st.title("🤖 AI News AutoBlog Generator")
 st.markdown("最新のAIニュースを取得し、3つのAIモデル（Gemini, Claude, ChatGPT）の討論形式ブログを自動生成してnoteに下書き保存します。")
@@ -50,7 +96,18 @@ with st.sidebar:
         st.session_state["NOTE_EMAIL"] = note_email
         st.session_state["NOTE_PASSWORD"] = note_password
         st.session_state["RSS_URL"] = rss_url
-        st.success("設定を保存しました！")
+        st.success("設定を保存しました！ APIキーを検証します...")
+
+        with st.spinner("APIキーの有効性を確認中..."):
+            validation_results = verify_api_keys(gemini_key, anthropic_key, openai_key)
+
+            for provider, result in validation_results.items():
+                if "✅" in result["status"]:
+                    st.success(f"{provider}: {result['status']}")
+                elif "⚠️" in result["status"]:
+                    st.warning(f"{provider}: {result['status']}")
+                else:
+                    st.error(f"{provider}: {result['status']} ({result['error']})")
 
 # --- 環境変数の更新（実行時用） ---
 # main.py の get_config が os.getenv を使うため、session_stateの値をos.environに反映させる
