@@ -2,12 +2,27 @@ import streamlit as st
 import asyncio
 from main import fetch_rss, generate_content, post_to_note
 import os
+import subprocess
 import google.generativeai as genai
 from openai import OpenAI
 from anthropic import Anthropic
 from dotenv import set_key, find_dotenv
 
 st.set_page_config(page_title="AutoBlog AI Generator", page_icon="🤖", layout="wide")
+
+def ensure_playwright_browsers():
+    """Ensure Playwright browsers are installed. Crucial for Streamlit Cloud."""
+    try:
+        # Check if browsers are already installed to avoid downloading every time
+        import playwright
+        # A simple check: run the install command. Playwright is smart enough to skip if already installed.
+        # But running it as a subprocess is necessary.
+        subprocess.run(["playwright", "install", "chromium"], check=True, capture_output=True)
+    except Exception as e:
+        print(f"Error checking/installing Playwright browsers: {e}")
+
+# Install browsers when app starts
+ensure_playwright_browsers()
 
 def verify_api_keys(gemini_key, anthropic_key, openai_key):
     results = {}
@@ -162,25 +177,23 @@ if st.button("今すぐブログを生成＆投稿する", type="primary"):
 
                 # 2. コンテンツ生成
                 st.write("🧠 AIモデルでコンテンツを生成中 (Gemini, Claude, ChatGPT)...")
-                title, content, image_path = generate_content(entry)
+                title, content, _ = generate_content(entry)
 
                 if not title or not content:
                     status.update(label="コンテンツ生成に失敗しました", state="error")
                     st.stop()
-                st.success("記事と画像の生成が完了しました！")
+                st.success("記事の生成が完了しました！")
 
                 # プレビュー表示
                 with st.expander("生成された記事のプレビュー", expanded=False):
                     st.markdown(content)
-                    if image_path and os.path.exists(image_path):
-                        st.image(image_path, caption="生成されたアイキャッチ画像")
 
                 # 3. Note投稿
                 st.write("🌐 Noteに自動ログインして下書き保存中...")
                 # Playwrightの非同期処理をStreamlit上で実行
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                loop.run_until_complete(post_to_note(title, content, image_path))
+                loop.run_until_complete(post_to_note(title, content))
                 loop.close()
 
                 status.update(label="🎉 すべての処理が正常に完了しました！", state="complete")

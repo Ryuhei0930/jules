@@ -180,52 +180,6 @@ def generate_content(entry):
     dialogue = dialogue_history
     summary = f"{entry.title} についての特別番組です。"
 
-    # 5. ChatGPT Image Prompt & DALL-E Image Generation
-    image_prompt = "Futuristic AI technology abstract illustration"
-    image_path = "generated_image.png"
-    image_url = ""
-
-    print("Turn 5: Generating Image Prompt...")
-    try:
-        image_prompt_gen_prompt = f"""
-        以下のAI討論記事の内容を象徴する、ブログのアイキャッチ画像のプロンプト（英語）を作成してください。
-        未来的で、AI技術を感じさせる、わかりやすい図解のようなスタイルを含めてください。
-
-        記事内容:
-        {dialogue}
-        """
-
-        completion = client_openai.chat.completions.create(
-            model=GPT_MODEL,
-            messages=[
-                {"role": "user", "content": image_prompt_gen_prompt}
-            ]
-        )
-        image_prompt = completion.choices[0].message.content
-    except Exception as e:
-        print(f"ChatGPT Image Prompt Error: {e}")
-
-    # Generate Image
-    print("Turn 6: Generating Image via DALL-E 3...")
-    try:
-        response = client_openai.images.generate(
-            model=IMAGE_MODEL,
-            prompt=image_prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1,
-        )
-        image_url = response.data[0].url
-
-        # Download Image
-        img_data = requests.get(image_url).content
-        with open(image_path, 'wb') as handler:
-            handler.write(img_data)
-
-    except Exception as e:
-        print(f"DALL-E Error: {e}")
-        image_path = None
-
     final_content = f"""
 # {entry.title}
 
@@ -237,16 +191,11 @@ def generate_content(entry):
 
 ## 🔗元記事
 [{entry.title}]({entry.link})
-
----
-※この記事のアイキャッチ画像はAIによって自動生成されたものです。
-※自動投稿の制約上、画像はリンクとして表示されています。有効期限があるため表示されない場合があります。
-[🎨生成されたアイキャッチ画像を見る]({image_url})
     """
 
-    return entry.title, final_content, image_path
+    return entry.title, final_content, None
 
-async def post_to_note(title, content, image_path):
+async def post_to_note(title, content, image_path=None):
     note_email = get_config("NOTE_EMAIL")
     note_password = get_config("NOTE_PASSWORD")
     if not note_email or not note_password:
