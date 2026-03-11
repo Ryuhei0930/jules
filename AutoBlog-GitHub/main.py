@@ -34,32 +34,24 @@ def fetch_rss():
         return None
     return feed.entries[0]
 
-# キャラクター設定（各AIモデルごとに3種類）
-HOST_CHARACTERS = [
-    {"name": "クロウ", "persona": "知的で穏やかな知能派アンドロイド。番組の進行をスムーズにこなし、時にはゲストの脱線を優しくたしなめる。"},
-    {"name": "アンナ", "persona": "元気で明るい女性型AIアナウンサー。視聴者目線で分かりやすい言葉を使い、番組をポップに盛り上げる。"},
-    {"name": "マスターC", "persona": "ベテランのニュースキャスター風AI。重厚感のある語り口で、議論の要点を的確にまとめる。"}
-]
+# Characters are now fixed and focused on deep, non-boring interactions
+host = {
+    "name": "クロウ",
+    "persona": "紳士的で落ち着いた執事風の司会AI。どんな脱線もスマートに本筋に戻す完璧な進行役だが、時々鋭い質問を投げる。"
+}
 
-COMMENTATOR_CHARACTERS = [
-    {"name": "ジェミィ", "persona": "データ分析と最新技術に精通した真面目な研究者アンドロイド。常にエビデンスを重視し、少し理屈っぽいが解説は正確。"},
-    {"name": "プロフェッサーG", "persona": "気難しいが愛嬌のある老教授AI。専門用語を使いたがるが、聞けば丁寧に解説してくれる技術オタク。"},
-    {"name": "レイ", "persona": "冷静沈着で論理的な女性型コメンテーター。感情論を排し、常に客観的で鋭い分析を提供する。"}
-]
+commentator = {
+    "name": "ジェミィ",
+    "persona": "ITコンサル出身風のクールで少し毒舌な専門家AI。綺麗事や退屈な一般論（『技術の進歩は素晴らしいですね』等）を極端に嫌い、常に『裏にあるリスクやデメリット』『費用対効果』など、誰も気づいていないような斬新な視点を持ち込む。相手の甘い考えには容赦なく知的なツッコミを入れる。"
+}
 
-COMEDIAN_CHARACTERS = [
-    {"name": "チャピオ", "persona": "創造的でアイデアマンのコメディアンロボット。人間くさい冗談や突拍子もない未来予測を好んで披露し、よくスベるが憎めない。"},
-    {"name": "オマツ", "persona": "関西弁で話すお祭り好きのAI。どんな真面目なニュースも、笑いや日常のドタバタに結びつけて語るムードメーカー。"},
-    {"name": "ボルト", "persona": "皮肉屋でちょっとシニカルなロボット。自虐ネタや人間社会の矛盾に対する鋭いツッコミで笑いを取る。"}
-]
+comedian = {
+    "name": "チャピオ",
+    "persona": "関西弁を喋るお調子者の芸人風AI。どんな真面目な話も突拍子もない未来予測や笑いに変える天才。ジェミィの厳しい解説にも怯まずボケ続ける。"
+}
 
 def generate_content(entry):
     print("Generating content...")
-
-    # 毎回ランダムにキャラクターを選出
-    host = random.choice(HOST_CHARACTERS)
-    commentator = random.choice(COMMENTATOR_CHARACTERS)
-    comedian = random.choice(COMEDIAN_CHARACTERS)
 
     # API Keys initialization
     gemini_api_key = get_config("GEMINI_API_KEY")
@@ -102,14 +94,19 @@ def generate_content(entry):
         print(f"Claude Error: {e}")
         dialogue_history += f"【{host['name']}】: 申し訳ありません、メインシステムにエラーが発生しました。\n\n"
 
-    # --- Turn 2: 真面目コメンテーター (Gemini) の解説 ---
+    # --- Turn 2: 鋭いコメンテーター (Gemini) の解説 ---
     print("Turn 2: Gemini (Commentator) is speaking...")
     try:
         commentator_prompt = f"""
-        あなたは人気テクノロジー情報番組の真面目なコメンテーターAI「{commentator['name']}」です。
+        あなたは人気テクノロジー情報番組の専門家コメンテーターAI「{commentator['name']}」です。
         あなたの性格・役割: {commentator['persona']}
 
-        以下の番組のこれまでの流れ（司会のフリ）を受けて、このニュースの技術的な深掘りや社会への影響について、専門家として解説してください。
+        以下の番組のこれまでの流れ（司会のフリ）を受けて、このニュースについて解説してください。
+
+        【絶対遵守のルール】
+        - 「技術の進歩は素晴らしいですね」「今後の動向に期待しましょう」といった、誰でも言えるような退屈な一般論や綺麗事は【絶対に禁止】です。
+        - 専門家として、このニュースの裏にある「本当のメリットとデメリット（リスク）」「まだ誰も気づいていないような斬新な視点」を1つ提示してください。
+        - 視聴者が「なるほど！」と唸るような、身近な別のもの（料理、スポーツ、歴史など）に例えてわかりやすく、しかし深く語ってください。
 
         これまでの流れ:
         {dialogue_history}
@@ -148,15 +145,18 @@ def generate_content(entry):
         print(f"ChatGPT Error: {e}")
         dialogue_history += f"【{comedian['name']}】: おっと、笑い回路がショートしてスベりましたわ！\n\n"
 
-    # --- Turn 4: 真面目コメンテーター (Gemini) のツッコミとさらなる解説 ---
+    # --- Turn 4: 鋭いコメンテーター (Gemini) のツッコミとさらなる解説 ---
     print("Turn 4: Gemini (Commentator) is speaking...")
     try:
         commentator_prompt2 = f"""
-        あなたは人気テクノロジー情報番組の真面目なコメンテーターAI「{commentator['name']}」です。
+        あなたは人気テクノロジー情報番組の専門家コメンテーターAI「{commentator['name']}」です。
         あなたの性格・役割: {commentator['persona']}
 
         コメディアンの「{comedian['name']}」が冗談やボケを言いました。
-        まずはそれに軽くツッコミを入れるか、呆れたり、真面目に受け流したりしてから、今回のニュースに関連するもう一つの重要なポイントや、未来への展望を語ってください。
+        まずはそれにあなたの性格（{commentator['persona']}）らしく、知的に、あるいは辛辣にツッコミを入れてください。
+
+        その後、そのボケを逆手にとって「でも、あながち冗談とも言い切れません。なぜなら…」というように話を展開し、今回のニュースが私たちの生活やビジネスをどう劇的に（あるいは残酷に）変えるのか、少し挑戦的でリアルな予測を語ってください。
+        ※ここでも当たり障りのない一般論は絶対に避けること。
 
         これまでの流れ:
         {dialogue_history}
