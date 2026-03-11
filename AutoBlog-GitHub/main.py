@@ -111,6 +111,7 @@ def generate_content(entry):
     client_openai = None
     image_prompt = "Futuristic AI technology abstract illustration"
     image_path = "generated_image.png"
+    image_url = ""
 
     try:
         openai_api_key = get_config("OPENAI_API_KEY")
@@ -170,6 +171,11 @@ def generate_content(entry):
 
 ## 元記事
 [{entry.title}]({entry.link})
+
+---
+※この記事のアイキャッチ画像はAIによって自動生成されたものです。
+※自動投稿の制約上、画像はリンクとして表示されています。
+[生成された画像を見る]({image_url})
     """
 
     return entry.title, final_content, image_path
@@ -198,8 +204,10 @@ async def post_to_note(title, content, image_path):
             # Wait for login to complete (check for avatar or home feed)
             await page.wait_for_url("https://note.com/", timeout=10000)
             print("Login successful.")
+            await page.screenshot(path="debug_login_success.png")
         except Exception as e:
             print(f"Login failed: {e}")
+            await page.screenshot(path="error_login_failed.png")
             await browser.close()
             return
 
@@ -207,70 +215,48 @@ async def post_to_note(title, content, image_path):
         try:
             print("Creating new note...")
             await page.goto("https://note.com/notes/new")
+            await page.wait_for_selector('textarea[placeholder="記事タイトル"]', timeout=15000)
 
             # Title
-            await page.fill('textarea[placeholder="記事タイトル"]', title) # Note often uses textarea for title now
+            print("Entering title...")
+            await page.fill('textarea[placeholder="記事タイトル"]', title)
 
             # Content
-            # Note uses a contenteditable div. We need to be careful.
-            # Clicking the editor area first
+            print("Entering content...")
+            # Using keyboard.insert_text is much safer for React/DraftJS/ProseMirror editors than JS injection
+            # Click the editor to focus it first
             await page.click('.editor-content')
+            await page.wait_for_timeout(1000) # Short wait to ensure focus
 
-            # Using keyboard input is safer than JS injection for React/DraftJS editors
-            # But for long content it's slow. Let's try clipboard paste simulation or innerText if possible.
-            # Simple approach: Type a bit then paste? Or just type.
-            # Given the length, let's try to set innerHTML via JS for the specific paragraph block if possible,
-            # but Note's structure is complex.
-            # Fallback: Type it (might be slow but reliable).
-            # Better: Copy to clipboard and paste.
+            # Insert text directly (preserves newlines and triggers React events)
+            await page.keyboard.insert_text(content)
 
-            # For this script, let's just use fill/type on the main editor area if identifiable.
-            # Note's editor is tricky. Let's assume a simple text dump for now.
-            # await page.keyboard.type(content) # Too slow for long text.
+            # Note: Image upload via Playwright on note.com is highly unstable due to dynamic DOM changes.
+            # We append the image URL to the content instead, which is reliable.
+            print("Skipping direct image upload for stability. URL is included in content.")
 
-            # JS Injection approach (Safe evaluation)
-            # Note's editor handles newlines better if we insert paragraphs or use innerHTML with <br>
-            # Simple conversion: \n -> <br>
-            safe_content = content.replace("\n", "<br>")
-
-            await page.evaluate("""(content) => {
-                const editor = document.querySelector('.editor-content [contenteditable="true"]');
-                if (editor) {
-                    editor.innerHTML = content;
-                    editor.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }""", safe_content)
-
-            # Image Upload
-            if image_path and os.path.exists(image_path):
-                print("Uploading image...")
-                # Note usually has an image upload button.
-                # We need to find the file input.
-                # Often hidden.
-                # Standard pattern: click "Add Image" button, then file chooser.
-                # Async file chooser handling:
-                async with page.expect_file_chooser() as fc_info:
-                    # Click the image add button (this selector is hypothetical and needs maintenance)
-                    # Note interface changes often.
-                    # As a fallback, we might skip image upload if selector fails.
-                    # Trying a generic approach for "Image" button in toolbar
-                    await page.click('button[aria-label="画像"]')
-                file_chooser = await fc_info.value
-                await file_chooser.set_files(image_path)
-                # Wait for upload
+            # Save Draft
+            print("Saving draft...")
+            # Note's UI sometimes changes between "公開設定" and just a "公開" button.
+            # Usually, there's a draft status indicator or button.
+            # If standard flow fails, we can just close the browser and Note autosaves.
+            # Let's try to click the publish setting menu, then save draft.
+            try:
+                await page.click('button:has-text("公開設定")', timeout=5000)
+                await page.wait_for_timeout(1000)
+                await page.click('button:has-text("下書き保存")', timeout=5000)
+                print("Draft explicitly saved.")
+            except Exception as btn_e:
+                print("Could not find explicit save button. Relying on Note's autosave feature.")
+                # Wait a few seconds for autosave to trigger before closing
                 await page.wait_for_timeout(5000)
 
-            # Save Draft (or Publish)
-            print("Saving draft...")
-            await page.click('button:has-text("公開設定")')
-            await page.click('button:has-text("下書き保存")')
-
-            print("Draft saved successfully.")
+            await page.screenshot(path="debug_post_success.png")
 
         except Exception as e:
             print(f"Posting failed: {e}")
             # Take screenshot for debugging
-            await page.screenshot(path="error_screenshot.png")
+            await page.screenshot(path="error_post_failed.png")
 
         await browser.close()
 
