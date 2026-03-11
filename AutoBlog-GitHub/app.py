@@ -5,6 +5,7 @@ import os
 import google.generativeai as genai
 from openai import OpenAI
 from anthropic import Anthropic
+from dotenv import set_key, find_dotenv
 
 st.set_page_config(page_title="AutoBlog AI Generator", page_icon="🤖", layout="wide")
 
@@ -89,17 +90,40 @@ with st.sidebar:
         submitted = st.form_submit_button("設定を保存")
 
     if submitted:
-        # ボタンが押されたらセッションステートを更新
+        # ボタンが押されたらセッションステートと.envファイルを更新
         st.session_state["GEMINI_API_KEY"] = gemini_key
         st.session_state["ANTHROPIC_API_KEY"] = anthropic_key
         st.session_state["OPENAI_API_KEY"] = openai_key
         st.session_state["NOTE_EMAIL"] = note_email
         st.session_state["NOTE_PASSWORD"] = note_password
         st.session_state["RSS_URL"] = rss_url
-        st.success("設定を保存しました！ APIキーを検証します...")
 
+        # Save to .env for persistence across reboots
+        dotenv_file = find_dotenv()
+        if not dotenv_file:
+            # Create if it doesn't exist
+            with open(".env", "w") as f:
+                pass
+            dotenv_file = find_dotenv()
+
+        set_key(dotenv_file, "GEMINI_API_KEY", gemini_key)
+        set_key(dotenv_file, "ANTHROPIC_API_KEY", anthropic_key)
+        set_key(dotenv_file, "OPENAI_API_KEY", openai_key)
+        set_key(dotenv_file, "NOTE_EMAIL", note_email)
+        set_key(dotenv_file, "NOTE_PASSWORD", note_password)
+        set_key(dotenv_file, "RSS_URL", rss_url)
+
+        st.success("設定を保存しました！ 次回再起動時もこの設定が読み込まれます。")
+
+    st.markdown("---")
+    st.subheader("API接続テスト")
+    if st.button("設定されたAPIキーをテストする"):
         with st.spinner("APIキーの有効性を確認中..."):
-            validation_results = verify_api_keys(gemini_key, anthropic_key, openai_key)
+            validation_results = verify_api_keys(
+                st.session_state.get("GEMINI_API_KEY", ""),
+                st.session_state.get("ANTHROPIC_API_KEY", ""),
+                st.session_state.get("OPENAI_API_KEY", "")
+            )
 
             for provider, result in validation_results.items():
                 if "✅" in result["status"]:
