@@ -16,8 +16,9 @@ def verify_api_keys(gemini_key, anthropic_key, openai_key):
     try:
         if gemini_key:
             genai.configure(api_key=gemini_key)
-            model = genai.GenerativeModel("gemini-1.5-flash") # Use a fast/standard model for checking
-            model.generate_content("test")
+            # Use list_models as it is the safest way to verify an API key without
+            # hardcoding a model name that might be deprecated or unavailable.
+            list(genai.list_models())
             results["Gemini"] = {"status": "✅ OK", "error": None}
         else:
             results["Gemini"] = {"status": "⚠️ 未入力", "error": None}
