@@ -30,7 +30,7 @@ def verify_api_keys(gemini_key, anthropic_key, openai_key):
         if anthropic_key:
             client = Anthropic(api_key=anthropic_key)
             client.messages.create(
-                model="claude-3-5-haiku-latest", # Use the actual model for checking
+                model="claude-3-5-haiku-20241022", # Use the actual model for checking
                 max_tokens=5,
                 messages=[{"role": "user", "content": "test"}]
             )
