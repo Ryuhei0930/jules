@@ -41,9 +41,16 @@ jobs:
         NOTE_PASSWORD: ${{ secrets.NOTE_PASSWORD }}
       run: python main.py
 
-    - name: Upload Artifacts (Screenshots/Logs)
+    - name: Upload Debug Screenshots
       if: failure()
       uses: actions/upload-artifact@v4
       with:
         name: debug-screenshots
-        path: "*.png"
+        path: AutoBlog-GitHub/*.png
+
+    - name: Upload Generated Image
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-blog-image
+        path: AutoBlog-GitHub/generated_image.png
