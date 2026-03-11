@@ -1,48 +1,76 @@
-# AutoBlog-GitHub (AI News Blog Automator)
+# AutoBlog AI Generator 🤖
 
-このプロジェクトは、毎日朝8時（日本時間）にAI関連ニュースをRSSで収集し、Gemini, Claude, ChatGPT, DALL-E 3を使用して「AI討論形式」のブログ記事を作成し、note.comに自動的に下書き保存するPythonスクリプトです。GitHub Actions上で動作します。
+AI関連の最新ニュースを毎日RSSで取得し、3つの異なるAIモデル（Claude、Gemini、ChatGPT）がTV番組風の討論を繰り広げるブログ記事を自動生成するシステムです。
+生成された記事は、自動で `note.com` に下書き保存されます。Androidなどのスマートフォンブラウザからも簡単に実行・設定が行えるように、StreamlitベースのWeb UIを備えています。
 
-## 主な機能
-*   **RSS取得**: 最新のAIニュースを取得。
-*   **AI討論生成**:
-    *   **Gemini (gemini-3-flash-preview)**: ニュース要約と解説。
-    *   **Claude (claude-haiku-4-5-20251001)**: 討論台本の作成（収益化を意識した司会進行）。
-    *   **ChatGPT (gpt-5-mini-2025-08-07)**: 画像プロンプト生成。
-    *   **DALL-E 3**: 記事のアイキャッチ画像を生成。
-*   **自動投稿**: Playwrightを使用してnote.comにログインし、記事の本文と画像を入力して下書き保存します。
-*   **スケジュール実行**: 毎日朝8時に自動実行。
-*   **手動実行**: スマホのGitHubアプリからいつでも実行可能。
+## 🌟 主な機能
 
-## セットアップ手順
+- **マルチAIによる討論形式のブログ生成**:
+  - 🤖 **クロウ (Claude)**: 番組の司会進行役。ニュースの紹介、話題のフリ、最後のオチ、投げ銭（サポート）のお願い、ハッシュタグの生成を担当します。
+  - 🤖 **ジェミィ (Gemini)**: 真面目なコメンテーター。ニュースの技術的な深掘りや社会への影響を専門家として解説します。
+  - 🤖 **チャピオ (ChatGPT)**: コメディアン枠。ユーモアや突拍子もない未来予測で議論を盛り上げ、クスッと笑える要素を追加します。
+  - 🎭 **ランダムペルソナ**: 各キャラクターには3種類の性格・役割（冷静、熱血、オタクなど）が用意されており、実行のたびにランダムに選ばれるため、毎日新鮮な掛け合いが楽しめます。
+- **Noteへの自動投稿機能**:
+  - Playwrightを用いてブラウザを自動操作し、生成したブログ記事を `note.com` に自動で下書き保存します。
+- **スマートフォン対応のWeb UI**:
+  - Streamlitを用いたWeb画面から、APIキーの設定、接続テスト、記事の手動生成・投稿がワンタップで可能です。
+- **GitHub Actionsによる完全自動化**:
+  - 指定した時間（例: 毎朝8時）に自動でニュースを取得してブログを作成するようスケジューリングできます。
+- *※画像生成機能（DALL-E 3）は現在、安定性のために一時停止・削除されています。*
 
-1.  **リポジトリのフォーク**: このリポジトリを自分のGitHubアカウントにフォークします。
+## 🚀 環境構築と使い方
 
-2.  **APIキーの取得**: 以下のサービスのAPIキーが必要です。
-    *   Google Gemini API Key
-    *   Anthropic API Key (Claude)
-    *   OpenAI API Key (ChatGPT/DALL-E)
+### Streamlit Cloudでの実行（推奨・スマホ対応）
 
-3.  **GitHub Secretsの設定**:
-    *   リポジトリの `Settings` > `Secrets and variables` > `Actions` に移動します。
-    *   以下の名前でシークレットを追加してください。
-        *   `RSS_URL`: RSSフィードのURL（例: `https://feeds.feedburner.com/TechCrunch/`）
-        *   `GEMINI_API_KEY`: 取得したGemini APIキー
-        *   `ANTHROPIC_API_KEY`: 取得したAnthropic APIキー
-        *   `OPENAI_API_KEY`: 取得したOpenAI APIキー
-        *   `NOTE_EMAIL`: note.comのログインメールアドレス
-        *   `NOTE_PASSWORD`: note.comのログインパスワード
+このリポジトリをStreamlit Cloudに連携するだけで、無料で自分専用のブログジェネレーターアプリを公開できます。
+Playwright（ブラウザ自動化）を動かすために必要なLinuxのシステム依存関係（`packages.txt`）も自動でインストールされます。
 
-4.  **スマホからの実行方法**:
-    *   GitHubモバイルアプリをインストールしてログインします。
-    *   このリポジトリを開き、`Actions` タブに移動します。
-    *   `Daily AI Blog Automation` ワークフローを選択します。
-    *   右上の `Run workflow` ボタンをタップすると、スクリプトが手動実行されます。
+1. **APIキーの用意**:
+   以下のAPIキーとアカウント情報が必要です。
+   - Gemini API Key
+   - Anthropic API Key (Claude)
+   - OpenAI API Key (ChatGPT)
+   - note.com のログイン用メールアドレスとパスワード
+2. **アプリの起動と設定**:
+   - アプリを起動後、サイドバー（スマホの場合は左上のメニュー）から各APIキーとNoteのログイン情報を入力し、「設定を保存」ボタンを押してください。
+   - （設定内容は `.env` に保存され、次回以降も保持されます）
+3. **実行**:
+   - 「今すぐブログを生成＆投稿する」ボタンを押すと、ニュース取得 → 討論生成 → noteへの下書き保存が始まります。
 
-## 注意事項
-*   **Noteの仕様変更**: note.comのデザインやログインフローが変更されると、自動投稿機能が動かなくなる可能性があります。その場合は `main.py` の修正が必要です。
-*   **APIコスト**: AI APIの使用料金が発生します。各サービスの利用状況を確認してください。
-*   **画像アップロード**: スクリプトは画像のアップロードを試みますが、UIの変更により失敗する場合があります。その場合はテキストのみ下書き保存されます。
-*   **2段階認証**: note.comで2段階認証を有効にしている場合、自動ログインは失敗します。一時的に無効にするか、Cookieを使用した高度な実装への変更が必要です。
+### ローカルでの実行
 
-## ライセンス
+Python 3.10以上が必要です。
+
+```bash
+# 1. リポジトリのクローン
+git clone https://github.com/your-username/AutoBlog-GitHub.git
+cd AutoBlog-GitHub
+
+# 2. 依存関係のインストール
+pip install -r requirements.txt
+playwright install chromium
+
+# 3. Streamlitアプリの起動
+streamlit run app.py
+```
+
+## 🛠️ 技術スタック
+
+- **UI/フロントエンド**: Streamlit
+- **バックエンド自動化**: Playwright (`async_playwright`)
+- **AIモデル**:
+  - `gemini-3-flash-preview` (Google)
+  - `claude-haiku-4-5-20251001` (Anthropic)
+  - `gpt-5-mini-2025-08-07` (OpenAI)
+- **ニュース取得**: `feedparser`
+- **インフラ/CI**: GitHub Actions, Streamlit Cloud
+
+## 💡 注意事項
+
+- **API利用料**: 各AIモデルのAPIを実行するため、各プラットフォームでのAPI利用料が発生する場合があります。
+- **Playwrightの依存関係**: Streamlit Cloudなどで実行する場合は、必ずリポジトリのルートに `packages.txt` （libglib2.0-0, libnss3 など）が存在していることを確認してください。無いとブラウザの起動に失敗します。
+- **noteのUI変更**: 自動投稿機能はnote.comのHTML構造（DOM）に依存しています。note側のUIアップデートにより自動投稿が失敗するようになった場合は、`main.py` のセレクタ指定を修正する必要があります。
+
+## 📄 ライセンス
+
 MIT License
