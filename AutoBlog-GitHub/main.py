@@ -19,7 +19,7 @@ def get_config(key, default=""):
 # Models
 
 # Models
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-3-flash-preview"
 CLAUDE_MODEL = "claude-3-5-haiku-latest"
 GPT_MODEL = "gpt-4o-mini"
 IMAGE_MODEL = "dall-e-3"
