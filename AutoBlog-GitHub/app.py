@@ -11,13 +11,14 @@ from dotenv import set_key, find_dotenv
 st.set_page_config(page_title="AutoBlog AI Generator", page_icon="🤖", layout="wide")
 
 def ensure_playwright_browsers():
-    """Ensure Playwright browsers are installed. Crucial for Streamlit Cloud."""
+    """Ensure Playwright browsers and dependencies are installed. Crucial for Streamlit Cloud."""
     try:
-        # Check if browsers are already installed to avoid downloading every time
         import playwright
-        # A simple check: run the install command. Playwright is smart enough to skip if already installed.
-        # But running it as a subprocess is necessary.
+        # Install Chromium browser
         subprocess.run(["playwright", "install", "chromium"], check=True, capture_output=True)
+        # Attempt to install OS dependencies required by Playwright (requires root/sudo, might fail on Streamlit Cloud,
+        # but packages.txt is provided as the primary solution for Streamlit Cloud OS dependencies).
+        subprocess.run(["playwright", "install-deps", "chromium"], capture_output=True)
     except Exception as e:
         print(f"Error checking/installing Playwright browsers: {e}")
 
