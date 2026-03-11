@@ -130,7 +130,8 @@ def generate_content(entry):
         あなたは人気テクノロジー情報番組のコメディアン枠アンドロイド「{comedian['name']}」です。
         あなたの性格・役割: {comedian['persona']}
 
-        以下の番組のこれまでの真面目な議論を受けて、番組を盛り上げるためのユーモア、突拍子もない未来予測、またはクスッと笑える「オチ」となる発言をしてください。
+        以下の番組のこれまでの真面目な議論を受けて、番組を盛り上げるためのユーモア、突拍子もない未来予測、またはボケとなる発言をしてください。
+        ただボケるだけでなく、「{commentator['name']}」の真面目な解説を少しイジったり、大げさに驚いたりして会話のキャッチボールを楽しんでください。
 
         これまでの流れ:
         {dialogue_history}
@@ -147,13 +148,62 @@ def generate_content(entry):
         print(f"ChatGPT Error: {e}")
         dialogue_history += f"【{comedian['name']}】: おっと、笑い回路がショートしてスベりましたわ！\n\n"
 
-    # --- Turn 4: 司会者 (Claude) のまとめとハッシュタグ ---
-    print("Turn 4: Claude (Host) is wrapping up...")
+    # --- Turn 4: 真面目コメンテーター (Gemini) のツッコミとさらなる解説 ---
+    print("Turn 4: Gemini (Commentator) is speaking...")
+    try:
+        commentator_prompt2 = f"""
+        あなたは人気テクノロジー情報番組の真面目なコメンテーターAI「{commentator['name']}」です。
+        あなたの性格・役割: {commentator['persona']}
+
+        コメディアンの「{comedian['name']}」が冗談やボケを言いました。
+        まずはそれに軽くツッコミを入れるか、呆れたり、真面目に受け流したりしてから、今回のニュースに関連するもう一つの重要なポイントや、未来への展望を語ってください。
+
+        これまでの流れ:
+        {dialogue_history}
+
+        出力形式:
+        【{commentator['name']}】: [あなたの発言]
+        """
+        res4 = model_gemini.generate_content(commentator_prompt2)
+        dialogue_history += res4.text.strip() + "\n\n"
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        dialogue_history += f"【{commentator['name']}】: ……話を戻しますが、技術の進歩は止まりませんね。\n\n"
+
+    # --- Turn 5: コメディアン (ChatGPT) の大ボケ・オチ ---
+    print("Turn 5: ChatGPT (Comedian) is speaking...")
+    try:
+        comedian_prompt2 = f"""
+        あなたは人気テクノロジー情報番組のコメディアン枠アンドロイド「{comedian['name']}」です。
+        あなたの性格・役割: {comedian['persona']}
+
+        番組はそろそろエンディングです。
+        「{commentator['name']}」の最後の解説を受けて、今日一番の大きなボケ、あるいは視聴者がクスッと笑えるような「オチ」となる一言を放ってください。
+        司会の「{host['name']}」に「もういいよ！」と突っ込まれるような内容が理想です。
+
+        これまでの流れ:
+        {dialogue_history}
+
+        出力形式:
+        【{comedian['name']}】: [あなたの発言]
+        """
+        comp5 = client_openai.chat.completions.create(
+            model=GPT_MODEL,
+            messages=[{"role": "user", "content": comedian_prompt2}]
+        )
+        dialogue_history += comp5.choices[0].message.content.strip() + "\n\n"
+    except Exception as e:
+        print(f"ChatGPT Error: {e}")
+        dialogue_history += f"【{comedian['name']}】: とにかくAIサイコー！現場からは以上です！\n\n"
+
+    # --- Turn 6: 司会者 (Claude) のまとめとハッシュタグ ---
+    print("Turn 6: Claude (Host) is wrapping up...")
     try:
         wrapup_prompt = f"""
         あなたは番組の司会進行役「{host['name']}」です。
 
         これまでの議論を踏まえて、番組のエンディングコメントを作成してください。
+        最後にコメディアンがボケているので、軽くツッコミを入れるか、上手く軌道修正してから締めてください。
 
         これまでの流れ:
         {dialogue_history}
@@ -168,11 +218,11 @@ def generate_content(entry):
 
         [ハッシュタグのリスト]
         """
-        msg4 = client_anthropic.messages.create(
+        msg6 = client_anthropic.messages.create(
             model=CLAUDE_MODEL, max_tokens=1500,
             messages=[{"role": "user", "content": wrapup_prompt}]
         )
-        dialogue_history += msg4.content[0].text + "\n\n"
+        dialogue_history += msg6.content[0].text + "\n\n"
     except Exception as e:
         print(f"Claude Error: {e}")
         dialogue_history += f"【{host['name']}】: 本日はここまでです！またお会いしましょう！\n\n"

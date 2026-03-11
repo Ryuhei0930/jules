@@ -10,6 +10,7 @@ from dotenv import set_key, find_dotenv
 
 st.set_page_config(page_title="AutoBlog AI Generator", page_icon="🤖", layout="wide")
 
+@st.cache_resource
 def ensure_playwright_browsers():
     """Ensure Playwright browsers and dependencies are installed. Crucial for Streamlit Cloud."""
     try:
