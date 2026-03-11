@@ -100,12 +100,11 @@ with st.sidebar:
         st.session_state["RSS_URL"] = rss_url
 
         # Save to .env for persistence across reboots
-        dotenv_file = find_dotenv()
-        if not dotenv_file:
+        dotenv_file = ".env"
+        if not os.path.exists(dotenv_file):
             # Create if it doesn't exist
-            with open(".env", "w") as f:
+            with open(dotenv_file, "w") as f:
                 pass
-            dotenv_file = find_dotenv()
 
         set_key(dotenv_file, "GEMINI_API_KEY", gemini_key)
         set_key(dotenv_file, "ANTHROPIC_API_KEY", anthropic_key)
