@@ -4,8 +4,6 @@ from main import fetch_rss, generate_content, post_to_note
 import os
 import subprocess
 import google.generativeai as genai
-from openai import OpenAI
-from anthropic import Anthropic
 from dotenv import set_key, find_dotenv
 
 st.set_page_config(page_title="AutoBlog AI Generator", page_icon="🤖", layout="wide")
@@ -26,7 +24,7 @@ def ensure_playwright_browsers():
 # Install browsers when app starts
 ensure_playwright_browsers()
 
-def verify_api_keys(gemini_key, anthropic_key, openai_key):
+def verify_api_keys(gemini_key):
     results = {}
 
     # Verify Gemini
@@ -42,36 +40,10 @@ def verify_api_keys(gemini_key, anthropic_key, openai_key):
     except Exception as e:
         results["Gemini"] = {"status": "❌ エラー", "error": str(e)}
 
-    # Verify Anthropic
-    try:
-        if anthropic_key:
-            client = Anthropic(api_key=anthropic_key)
-            client.messages.create(
-                model="claude-3-haiku-20240307", # Use the actual model for checking
-                max_tokens=5,
-                messages=[{"role": "user", "content": "test"}]
-            )
-            results["Anthropic"] = {"status": "✅ OK", "error": None}
-        else:
-            results["Anthropic"] = {"status": "⚠️ 未入力", "error": None}
-    except Exception as e:
-        results["Anthropic"] = {"status": "❌ エラー", "error": str(e)}
-
-    # Verify OpenAI
-    try:
-        if openai_key:
-            client = OpenAI(api_key=openai_key)
-            client.models.list() # Lightest API call to verify key
-            results["OpenAI"] = {"status": "✅ OK", "error": None}
-        else:
-            results["OpenAI"] = {"status": "⚠️ 未入力", "error": None}
-    except Exception as e:
-        results["OpenAI"] = {"status": "❌ エラー", "error": str(e)}
-
     return results
 
 st.title("🤖 AI News AutoBlog Generator")
-st.markdown("最新のAIニュースを取得し、3つのAIモデル（Gemini, Claude, ChatGPT）の討論形式ブログを自動生成してnoteに下書き保存します。")
+st.markdown("最新のAIニュースを取得し、Geminiを使ったワイドショー形式の討論ブログを自動生成してnoteに下書き保存します。")
 
 # --- セッションステートの初期化 ---
 def init_session_state(key, default_val):
@@ -79,8 +51,6 @@ def init_session_state(key, default_val):
         st.session_state[key] = os.getenv(key, default_val)
 
 init_session_state("GEMINI_API_KEY", "")
-init_session_state("ANTHROPIC_API_KEY", "")
-init_session_state("OPENAI_API_KEY", "")
 init_session_state("NOTE_EMAIL", "")
 init_session_state("NOTE_PASSWORD", "")
 init_session_state("RSS_URL", "https://feeds.feedburner.com/TechCrunch/")
@@ -94,8 +64,6 @@ with st.sidebar:
     with st.form("settings_form"):
         st.subheader("API Keys")
         gemini_key = st.text_input("Gemini API Key", value=st.session_state["GEMINI_API_KEY"], type="password")
-        anthropic_key = st.text_input("Anthropic API Key", value=st.session_state["ANTHROPIC_API_KEY"], type="password")
-        openai_key = st.text_input("OpenAI API Key", value=st.session_state["OPENAI_API_KEY"], type="password")
 
         st.subheader("Note Credentials")
         note_email = st.text_input("Note Email", value=st.session_state["NOTE_EMAIL"])
@@ -110,8 +78,6 @@ with st.sidebar:
     if submitted:
         # ボタンが押されたらセッションステートと.envファイルを更新
         st.session_state["GEMINI_API_KEY"] = gemini_key
-        st.session_state["ANTHROPIC_API_KEY"] = anthropic_key
-        st.session_state["OPENAI_API_KEY"] = openai_key
         st.session_state["NOTE_EMAIL"] = note_email
         st.session_state["NOTE_PASSWORD"] = note_password
         st.session_state["RSS_URL"] = rss_url
@@ -124,8 +90,6 @@ with st.sidebar:
                 pass
 
         set_key(dotenv_file, "GEMINI_API_KEY", gemini_key)
-        set_key(dotenv_file, "ANTHROPIC_API_KEY", anthropic_key)
-        set_key(dotenv_file, "OPENAI_API_KEY", openai_key)
         set_key(dotenv_file, "NOTE_EMAIL", note_email)
         set_key(dotenv_file, "NOTE_PASSWORD", note_password)
         set_key(dotenv_file, "RSS_URL", rss_url)
@@ -137,9 +101,7 @@ with st.sidebar:
     if st.button("設定されたAPIキーをテストする"):
         with st.spinner("APIキーの有効性を確認中..."):
             validation_results = verify_api_keys(
-                st.session_state.get("GEMINI_API_KEY", ""),
-                st.session_state.get("ANTHROPIC_API_KEY", ""),
-                st.session_state.get("OPENAI_API_KEY", "")
+                st.session_state.get("GEMINI_API_KEY", "")
             )
 
             for provider, result in validation_results.items():
@@ -153,8 +115,6 @@ with st.sidebar:
 # --- 環境変数の更新（実行時用） ---
 # main.py の get_config が os.getenv を使うため、session_stateの値をos.environに反映させる
 os.environ["GEMINI_API_KEY"] = st.session_state.get("GEMINI_API_KEY", "")
-os.environ["ANTHROPIC_API_KEY"] = st.session_state.get("ANTHROPIC_API_KEY", "")
-os.environ["OPENAI_API_KEY"] = st.session_state.get("OPENAI_API_KEY", "")
 os.environ["NOTE_EMAIL"] = st.session_state.get("NOTE_EMAIL", "")
 os.environ["NOTE_PASSWORD"] = st.session_state.get("NOTE_PASSWORD", "")
 os.environ["RSS_URL"] = st.session_state.get("RSS_URL", "")
@@ -164,7 +124,7 @@ st.header("🚀 ブログ生成と投稿")
 
 if st.button("今すぐブログを生成＆投稿する", type="primary"):
     # 必須項目のチェック
-    if not all([gemini_key, anthropic_key, openai_key, note_email, note_password]):
+    if not all([gemini_key, note_email, note_password]):
         st.error("エラー: サイドバーで必要なAPIキーとNoteログイン情報をすべて入力してください。")
     else:
         with st.status("処理を開始します...", expanded=True) as status:
