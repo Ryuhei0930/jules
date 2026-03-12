@@ -111,6 +111,21 @@ def main():
 
     current_api_key = st.session_state.get('gemini_api_key', '')
 
+    if st.sidebar.button("APIキーを保存・テストする"):
+        if current_api_key:
+            try:
+                # 軽量なモデルでAPIキーの有効性をテスト
+                test_client = genai.Client(api_key=current_api_key)
+                test_client.models.generate_content(
+                    model='gemini-1.5-flash',
+                    contents='test'
+                )
+                st.sidebar.success("✅ APIキーが有効です！保存されました。")
+            except Exception as e:
+                st.sidebar.error("❌ APIキーが無効か、通信エラーです。正しいキーを確認してください。")
+        else:
+            st.sidebar.error("キーを入力してください。")
+
     if not current_api_key:
         st.sidebar.warning("⚠️ テストモード(白黒変換)で動作します")
 
