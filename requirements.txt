@@ -1,0 +1,9 @@
+playwright
+feedparser
+openai
+anthropic
+google-generativeai
+python-dotenv
+requests
+typing-extensions
+streamlit
