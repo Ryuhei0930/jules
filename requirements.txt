@@ -1,0 +1,6 @@
+streamlit==1.55.0
+google-analytics-data
+google-genai
+python-dotenv
+markdown
+pdfkit
