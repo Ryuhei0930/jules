@@ -8,21 +8,26 @@ from dotenv import set_key, find_dotenv
 
 st.set_page_config(page_title="AutoBlog AI Generator", page_icon="🤖", layout="wide")
 
-@st.cache_resource
-def ensure_playwright_browsers():
-    """Ensure Playwright browsers and dependencies are installed. Crucial for Streamlit Cloud."""
-    try:
-        import playwright
-        # Install Chromium browser
-        subprocess.run(["playwright", "install", "chromium"], check=True, capture_output=True)
-        # Attempt to install OS dependencies required by Playwright (requires root/sudo, might fail on Streamlit Cloud,
-        # but packages.txt is provided as the primary solution for Streamlit Cloud OS dependencies).
-        subprocess.run(["playwright", "install-deps", "chromium"], capture_output=True)
-    except Exception as e:
-        print(f"Error checking/installing Playwright browsers: {e}")
+import os
+import subprocess
 
-# Install browsers when app starts
-ensure_playwright_browsers()
+# --- Playwright Browser Installation for Streamlit Cloud ---
+# This must run before any Playwright code is executed.
+# We run it synchronously (without @st.cache_resource) so that if the Streamlit container
+# is restarted or moved, the browser binary is re-downloaded to ~/.cache/ms-playwright/
+# Since the command is idempotent, running it on every startup is safe and very fast if already installed.
+import sys
+
+def install_playwright():
+    try:
+        # Streamlit Cloud uses Debian/Ubuntu. We only need chromium.
+        print("Checking/Installing Playwright chromium...")
+        subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+        print("Playwright chromium installed successfully.")
+    except Exception as e:
+        print(f"Failed to install Playwright chromium: {e}")
+
+install_playwright()
 
 def verify_api_keys(gemini_key):
     results = {}
@@ -82,19 +87,13 @@ with st.sidebar:
         st.session_state["NOTE_PASSWORD"] = note_password
         st.session_state["RSS_URL"] = rss_url
 
-        # Save to .env for persistence across reboots
-        dotenv_file = ".env"
-        if not os.path.exists(dotenv_file):
-            # Create if it doesn't exist
-            with open(dotenv_file, "w") as f:
-                pass
+        # For security reasons on Streamlit Cloud, do not save secrets to local files or env variables
+        # as they would be shared with anyone visiting the URL.
+        # Instead, secrets are kept only in the user's session state during their active session.
+        # In a real environment, you should use Streamlit secrets management for API keys.
 
-        set_key(dotenv_file, "GEMINI_API_KEY", gemini_key)
-        set_key(dotenv_file, "NOTE_EMAIL", note_email)
-        set_key(dotenv_file, "NOTE_PASSWORD", note_password)
-        set_key(dotenv_file, "RSS_URL", rss_url)
-
-        st.success("設定を保存しました！ 次回再起動時もこの設定が読み込まれます。")
+        st.success("セッションに設定を保存しました。(アプリを閉じるとリセットされます)")
+        st.info("※ Streamlit Cloudは公開アプリであり、複数ユーザーが同じバックエンドを共有するため、セキュリティ上パスワード等はファイルに保存しません。")
 
     st.markdown("---")
     st.subheader("API接続テスト")
@@ -111,13 +110,6 @@ with st.sidebar:
                     st.warning(f"{provider}: {result['status']}")
                 else:
                     st.error(f"{provider}: {result['status']} ({result['error']})")
-
-# --- 環境変数の更新（実行時用） ---
-# main.py の get_config が os.getenv を使うため、session_stateの値をos.environに反映させる
-os.environ["GEMINI_API_KEY"] = st.session_state.get("GEMINI_API_KEY", "")
-os.environ["NOTE_EMAIL"] = st.session_state.get("NOTE_EMAIL", "")
-os.environ["NOTE_PASSWORD"] = st.session_state.get("NOTE_PASSWORD", "")
-os.environ["RSS_URL"] = st.session_state.get("RSS_URL", "")
 
 # --- メイン実行エリア ---
 st.header("🚀 ブログ生成と投稿")

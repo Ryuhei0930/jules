@@ -1,8 +1,7 @@
 libglib2.0-0
 libnss3
-libgconf-2-4
 libfontconfig1
-libasound2
+libasound2t64
 libatk1.0-0
 libatk-bridge2.0-0
 libcups2
@@ -31,6 +30,5 @@ libxcb-sync1
 libxext6
 libvulkan1
 libgl1
-libgl1-mesa-glx
 libegl1
 libgles2

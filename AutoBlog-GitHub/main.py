@@ -13,6 +13,17 @@ from playwright.async_api import async_playwright
 load_dotenv()
 
 def get_config(key, default=""):
+    """
+    設定を取得する。Streamlit上であればsession_stateを優先し、
+    そうでなければ環境変数(.env等)から取得する。
+    """
+    try:
+        import streamlit as st
+        # If running under Streamlit and the key is in session state
+        if key in st.session_state and st.session_state[key]:
+            return st.session_state[key]
+    except ImportError:
+        pass
     return os.getenv(key, default)
 
 # Models
