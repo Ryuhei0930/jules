@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Facebook Photo Book</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .page {
+            width: 210mm; /* A4 width */
+            height: 297mm; /* A4 height */
+            background-color: white;
+            margin: 0 auto;
+            page-break-after: always; /* Ensure each page starts on a new page in PDF */
+            box-sizing: border-box;
+            padding: 20mm; /* Margin inside the page */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+        /* Remove background and margins when printing to PDF */
+        @media print {
+            body {
+                background-color: transparent;
+            }
+            .page {
+                margin: 0;
+                box-shadow: none;
+                width: 100%;
+                height: 100%;
+            }
+        }
+        .cover {
+            justify-content: center;
+        }
+        .cover h1 {
+            font-size: 3em;
+            color: #3b5998; /* Facebook blue */
+            margin-bottom: 0.5em;
+        }
+        .cover p {
+            font-size: 1.5em;
+            color: #555;
+        }
+        .photo-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-height: 70%;
+            margin-bottom: 20px;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            object-fit: contain;
+        }
+        .caption {
+            font-size: 1.2em;
+            color: #333;
+            line-height: 1.5;
+            max-height: 20%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 10px;
+        }
+        .page-number {
+            position: absolute;
+            bottom: 10mm;
+            width: 100%;
+            text-align: center;
+            font-size: 0.9em;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cover Page -->
+    <div class="page cover">
+        <h1>{{ title }}</h1>
+        <p>My Facebook Memories</p>
+        <p>{{ date }}</p>
+    </div>
+
+    <!-- Content Pages -->
+    {% for post in posts %}
+    <div class="page">
+        <div class="photo-container">
+            <img src="{{ post.image_url }}" alt="Facebook Photo">
+        </div>
+        <div class="caption">
+            <p>{{ post.text }}</p>
+            <small style="color: #777;">{{ post.date }}</small>
+        </div>
+        <div class="page-number">- {{ loop.index }} -</div>
+    </div>
+    {% endfor %}
+
+    <!-- Back Cover (if needed to pad to exact page count) -->
+    <!-- Currently padding is handled in Python, but we could add a final page here -->
+
+</body>
+</html>
