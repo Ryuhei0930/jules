@@ -53,9 +53,10 @@ with st.sidebar:
                 if gemini_key:
                     with st.spinner("APIキーを検証中..."):
                         client = genai.Client(api_key=gemini_key)
-                        # APIの疎通確認（一番軽いリクエスト）
+                        # APIの疎通確認
+                        # 注: gemini-2.0-flashは新規APIキーで404になるため、安定版の1.5-flashを使用
                         response = client.models.generate_content(
-                            model='gemini-2.0-flash',
+                            model='gemini-1.5-flash',
                             contents='test'
                         )
                 # テスト成功時（またはキーが空の時は検証スキップ）
