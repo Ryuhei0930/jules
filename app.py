@@ -5,6 +5,7 @@ import subprocess
 from main import fetch_latest_ai_news, generate_blog_content
 from note_poster import post_to_note
 from dotenv import set_key
+from google import genai
 
 st.set_page_config(page_title="AIニュース自動ブログ生成", page_icon="🤖", layout="centered")
 
@@ -45,12 +46,29 @@ with st.sidebar:
         note_email = st.text_input("Note ログインメールアドレス", value=os.environ.get("NOTE_EMAIL", ""))
         note_pass = st.text_input("Note ログインパスワード", value=os.environ.get("NOTE_PASSWORD", ""), type="password")
 
-        submitted = st.form_submit_button("設定を保存")
+        submitted = st.form_submit_button("設定を保存してAPIをテスト")
         if submitted:
-            save_env("GEMINI_API_KEY", gemini_key)
-            save_env("NOTE_EMAIL", note_email)
-            save_env("NOTE_PASSWORD", note_pass)
-            st.success("✅ 設定を保存しました。")
+            # APIキーの有効性テスト
+            try:
+                if gemini_key:
+                    with st.spinner("APIキーを検証中..."):
+                        client = genai.Client(api_key=gemini_key)
+                        # APIの疎通確認（一番軽いリクエスト）
+                        response = client.models.generate_content(
+                            model='gemini-2.0-flash',
+                            contents='test'
+                        )
+                # テスト成功時（またはキーが空の時は検証スキップ）
+                save_env("GEMINI_API_KEY", gemini_key)
+                save_env("NOTE_EMAIL", note_email)
+                save_env("NOTE_PASSWORD", note_pass)
+                if gemini_key:
+                    st.success("✅ APIテスト成功！設定を保存しました。")
+                else:
+                    st.success("✅ 設定を保存しました。")
+            except Exception as e:
+                st.error("❌ APIキーが無効、または使用できません。正しいキーを入力してください。")
+                st.error(f"詳細: {e}")
 
 st.divider()
 
