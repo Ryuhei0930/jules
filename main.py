@@ -35,10 +35,10 @@ def generate_blog_content(news_entry):
     Geminiを使用して、ニュース記事からワイドショー形式のブログ記事を生成する。
     1つのプロンプトでGeminiに複数人のキャラを演じさせることで、APIを統一し安定させる。
     """
-    gemini_key = os.getenv("GEMINI_API_KEY")
+    # os.environから最新のキーを取得する
+    gemini_key = os.environ.get("GEMINI_API_KEY")
     if not gemini_key:
-        print("❌ GEMINI_API_KEYが設定されていません。")
-        return None, None
+        raise ValueError("GEMINI_API_KEYが設定されていません。")
 
     print("🧠 Geminiによるブログ記事生成を開始します...")
     client = genai.Client(api_key=gemini_key)
@@ -81,6 +81,8 @@ def generate_blog_content(news_entry):
             contents=prompt
         )
         content = response.text
+        if not content:
+            raise ValueError("Gemini APIからの返答が空でした。ニュース内容が不適切と判定され、ブロックされた可能性があります。")
 
         # タイトルと本文を分離する
         lines = content.split('\n')

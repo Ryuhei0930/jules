@@ -97,13 +97,11 @@ if st.button("🚀 今すぐブログを生成してNoteに投稿（下書き）
             st.write("🧠 Geminiが白熱討論ブログを執筆中...（約10〜30秒かかります）")
             try:
                 title, body = generate_blog_content(news)
-                if not title or not body:
-                    status.update(label="記事の生成に失敗しました", state="error")
-                    st.stop()
                 st.write("✅ 記事の生成が完了しました！")
             except Exception as e:
-                status.update(label=f"Gemini API エラー: {e}", state="error")
-                st.error("APIキーが間違っているか、無料枠の上限に達している可能性があります。サイドバーの「設定を保存してAPIをテスト」ボタンでAPIキーが有効か確認してください。")
+                status.update(label="❌ 記事の生成中にエラーが発生しました", state="error")
+                st.error(f"詳細エラー内容: {e}")
+                st.warning("APIキーが未設定か間違っている、無料枠の上限に達している、または生成されたニュースがポリシー違反でブロックされた可能性があります。サイドバーの「設定を保存してAPIをテスト」ボタンでAPIキーが有効か確認してください。")
                 st.stop()
 
             # プレビュー表示（エキスパンダー内）
