@@ -99,7 +99,8 @@ def generate_blog_content(news_entry):
 
     except Exception as e:
         print(f"❌ Gemini API実行中にエラーが発生しました: {e}")
-        return None, None
+        # Webアプリ側でエラー原因を表示できるように例外を再送出する
+        raise e
 
 if __name__ == "__main__":
     import asyncio
