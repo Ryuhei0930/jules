@@ -12,5 +12,3 @@ libxrandr2
 libxcb1
 libxkbcommon0
 libx11-6
-libglib2.0-0
-libxss1
