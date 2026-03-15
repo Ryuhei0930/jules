@@ -81,12 +81,12 @@ col1, col2 = st.columns([1, 1])
 with col1:
     if st.button("🔄 最新のニュースを取得する"):
         with st.spinner("RSSから最新ニュースを取得中..."):
-            st.session_state.news_list = fetch_latest_ai_news(limit=5)
+            st.session_state.news_list = fetch_latest_ai_news(limit_per_feed=3)
             if not st.session_state.news_list:
                 st.warning("ニュースの取得に失敗したか、記事がありません。")
 
 if st.session_state.news_list:
-    news_titles = [f"{i+1}. {news['title']}" for i, news in enumerate(st.session_state.news_list)]
+    news_titles = [f"{i+1}. [{news.get('source', '不明')}] {news['title']}" for i, news in enumerate(st.session_state.news_list)]
     selected_title = st.selectbox("ブログ化する記事を選んでください:", options=news_titles)
 
     # 選択された記事のインデックスを取得

@@ -1,37 +1,49 @@
 import os
 import feedparser
 from dotenv import load_dotenv
+from google import genai
 
 load_dotenv()
 
-def fetch_latest_ai_news(rss_url="https://feeds.feedburner.com/TechCrunch/", limit=5):
+def fetch_latest_ai_news(limit_per_feed=3):
     """
-    指定されたRSS URLから最新の記事を複数取得する。
-    デフォルトはTechCrunch(英語)。日本語のAIニュースソースも検討可。
+    複数のRSS URLから最新の記事を取得する。
     """
-    print(f"📡 RSSフィードを取得中: {rss_url}")
-    feed = feedparser.parse(rss_url)
-
-    if not feed.entries:
-        print("❌ ニュース記事が見つかりませんでした。")
-        return []
+    rss_sources = {
+        "Google News AI": "https://news.google.com/rss/search?q=AI+when:1d&hl=ja&gl=JP&ceid=JP:ja",
+        "ITmedia AI+": "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml",
+        "VentureBeat AI": "https://venturebeat.com/category/ai/feed/",
+        "The Verge AI": "https://www.theverge.com/rss/index.xml",
+        "WIRED AI": "https://www.wired.com/feed/category/business/latest/rss",
+        "TechCrunch": "https://feeds.feedburner.com/TechCrunch/"
+    }
 
     news_list = []
-    for entry in feed.entries[:limit]:
-        title = entry.get('title', 'No Title')
-        link = entry.get('link', '')
-        description = entry.get('summary', entry.get('description', 'No Description'))
 
-        news_list.append({
-            "title": title,
-            "link": link,
-            "description": description
-        })
+    for source_name, rss_url in rss_sources.items():
+        print(f"📡 {source_name} のRSSフィードを取得中: {rss_url}")
+        try:
+            feed = feedparser.parse(rss_url)
+            if not feed.entries:
+                print(f"❌ {source_name} のニュース記事が見つかりませんでした。")
+                continue
 
-    print(f"✅ 最新ニュースを{len(news_list)}件取得しました。")
+            for entry in feed.entries[:limit_per_feed]:
+                title = entry.get('title', 'No Title')
+                link = entry.get('link', '')
+                description = entry.get('summary', entry.get('description', 'No Description'))
+
+                news_list.append({
+                    "source": source_name,
+                    "title": title,
+                    "link": link,
+                    "description": description
+                })
+        except Exception as e:
+            print(f"❌ {source_name} の取得中にエラーが発生しました: {e}")
+
+    print(f"✅ 合計で {len(news_list)} 件の最新ニュースを取得しました。")
     return news_list
-
-from google import genai
 
 def generate_blog_content(news_entry):
     """
@@ -101,7 +113,7 @@ def generate_blog_content(news_entry):
         body = '\n'.join(body_lines).strip()
 
         # 最後に元記事のリンクを付与
-        body += f"\n\n---\n\n**📰 元のニュース記事はこちら:**\n[{news_entry['title']}]({news_entry['link']})"
+        body += f"\n\n---\n\n**📰 元のニュース記事はこちら:**\n[{news_entry['title']}]({news_entry['link']}) ({news_entry.get('source', '不明')})"
         print("✅ ブログ記事の生成が完了しました。")
         return title, body
 
@@ -115,7 +127,7 @@ if __name__ == "__main__":
     from note_poster import post_to_note
 
     # 自動化スクリプト(GitHub Actionsなど)の場合は常に1件目を使用する
-    news_list = fetch_latest_ai_news(limit=1)
+    news_list = fetch_latest_ai_news(limit_per_feed=1)
     if news_list:
         news = news_list[0]
         title, body = generate_blog_content(news)
