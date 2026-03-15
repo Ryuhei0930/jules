@@ -72,51 +72,71 @@ with st.sidebar:
 
 st.divider()
 
-if st.button("🚀 今すぐブログを生成してNoteに投稿（下書き）する", type="primary", use_container_width=True):
-    # 設定の確認
-    if not os.environ.get("GEMINI_API_KEY"):
-        st.error("エラー: Gemini APIキーが設定されていません。サイドバーから設定してください。")
-        st.stop()
-    if not os.environ.get("NOTE_EMAIL") or not os.environ.get("NOTE_PASSWORD"):
-        st.error("エラー: Noteのログイン情報が設定されていません。サイドバーから設定してください。")
-        st.stop()
+st.subheader("📰 ブログ化するニュースの選択")
+# セッションステートにニュースリストを保存
+if "news_list" not in st.session_state:
+    st.session_state.news_list = []
 
-    with st.status("自動化処理を実行中...", expanded=True) as status:
-        try:
-            # 1. RSS取得
-            st.write("📡 最新のAIニュースを取得中...")
-            news = fetch_latest_ai_news()
+col1, col2 = st.columns([1, 1])
+with col1:
+    if st.button("🔄 最新のニュースを取得する"):
+        with st.spinner("RSSから最新ニュースを取得中..."):
+            st.session_state.news_list = fetch_latest_ai_news(limit=5)
+            if not st.session_state.news_list:
+                st.warning("ニュースの取得に失敗したか、記事がありません。")
 
-            if not news:
-                status.update(label="ニュースの取得に失敗しました", state="error")
-                st.stop()
+if st.session_state.news_list:
+    news_titles = [f"{i+1}. {news['title']}" for i, news in enumerate(st.session_state.news_list)]
+    selected_title = st.selectbox("ブログ化する記事を選んでください:", options=news_titles)
 
-            st.write(f"✅ 取得完了: **{news['title']}**")
+    # 選択された記事のインデックスを取得
+    selected_index = news_titles.index(selected_title)
+    selected_news = st.session_state.news_list[selected_index]
 
-            # 2. 記事生成
-            st.write("🧠 Geminiが白熱討論ブログを執筆中...（約10〜30秒かかります）")
+    # 概要プレビュー
+    with st.expander("📄 記事の概要プレビュー"):
+        st.write(selected_news['description'])
+        st.markdown(f"[元の記事を読む]({selected_news['link']})")
+
+    st.divider()
+
+    if st.button("🚀 選択したニュースでブログを生成してNoteに投稿", type="primary", use_container_width=True):
+        # 設定の確認
+        if not os.environ.get("GEMINI_API_KEY"):
+            st.error("エラー: Gemini APIキーが設定されていません。サイドバーから設定してください。")
+            st.stop()
+        if not os.environ.get("NOTE_EMAIL") or not os.environ.get("NOTE_PASSWORD"):
+            st.error("エラー: Noteのログイン情報が設定されていません。サイドバーから設定してください。")
+            st.stop()
+
+        with st.status("自動化処理を実行中...", expanded=True) as status:
             try:
-                title, body = generate_blog_content(news)
-                st.write("✅ 記事の生成が完了しました！")
+                # 1. 記事生成
+                st.write(f"🧠 Geminiが白熱討論ブログを執筆中...（対象: {selected_news['title']}）")
+                try:
+                    title, body = generate_blog_content(selected_news)
+                    st.write("✅ 記事の生成が完了しました！")
+                except Exception as e:
+                    status.update(label="❌ 記事の生成中にエラーが発生しました", state="error")
+                    st.error(f"詳細エラー内容: {e}")
+                    st.warning("APIキーが未設定か間違っている、無料枠の上限に達している、または生成されたニュースがポリシー違反でブロックされた可能性があります。サイドバーの「設定を保存してAPIをテスト」ボタンでAPIキーが有効か確認してください。")
+                    st.stop()
+
+                # プレビュー表示（エキスパンダー内）
+                with st.expander("📝 生成された記事のプレビューを確認"):
+                    st.subheader(title)
+                    st.markdown(body)
+
+                # 3. Noteへの投稿
+                st.write("🌐 Noteへログインし、下書きとして保存中...")
+                asyncio.run(post_to_note(title, body))
+
+                status.update(label="全ての処理が完了しました！", state="complete")
+                st.balloons()
+                st.success("🎉 Note.comの「記事」画面に下書きとして保存されました。確認して手動で公開してください！")
+
             except Exception as e:
-                status.update(label="❌ 記事の生成中にエラーが発生しました", state="error")
-                st.error(f"詳細エラー内容: {e}")
-                st.warning("APIキーが未設定か間違っている、無料枠の上限に達している、または生成されたニュースがポリシー違反でブロックされた可能性があります。サイドバーの「設定を保存してAPIをテスト」ボタンでAPIキーが有効か確認してください。")
-                st.stop()
-
-            # プレビュー表示（エキスパンダー内）
-            with st.expander("📝 生成された記事のプレビューを確認"):
-                st.subheader(title)
-                st.markdown(body)
-
-            # 3. Noteへの投稿
-            st.write("🌐 Noteへログインし、下書きとして保存中...")
-            asyncio.run(post_to_note(title, body))
-
-            status.update(label="全ての処理が完了しました！", state="complete")
-            st.balloons()
-            st.success("🎉 Note.comの「記事」画面に下書きとして保存されました。確認して手動で公開してください！")
-
-        except Exception as e:
-            status.update(label="エラーが発生しました", state="error")
-            st.error(f"詳細: {e}")
+                status.update(label="エラーが発生しました", state="error")
+                st.error(f"詳細: {e}")
+else:
+    st.info("上の「最新のニュースを取得する」ボタンを押して、記事を選んでください。")

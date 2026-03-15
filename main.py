@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def fetch_latest_ai_news(rss_url="https://feeds.feedburner.com/TechCrunch/"):
+def fetch_latest_ai_news(rss_url="https://feeds.feedburner.com/TechCrunch/", limit=5):
     """
-    指定されたRSS URLから最新の記事を1件取得する。
+    指定されたRSS URLから最新の記事を複数取得する。
     デフォルトはTechCrunch(英語)。日本語のAIニュースソースも検討可。
     """
     print(f"📡 RSSフィードを取得中: {rss_url}")
@@ -14,19 +14,22 @@ def fetch_latest_ai_news(rss_url="https://feeds.feedburner.com/TechCrunch/"):
 
     if not feed.entries:
         print("❌ ニュース記事が見つかりませんでした。")
-        return None
+        return []
 
-    latest_entry = feed.entries[0]
-    title = latest_entry.get('title', 'No Title')
-    link = latest_entry.get('link', '')
-    description = latest_entry.get('summary', latest_entry.get('description', 'No Description'))
+    news_list = []
+    for entry in feed.entries[:limit]:
+        title = entry.get('title', 'No Title')
+        link = entry.get('link', '')
+        description = entry.get('summary', entry.get('description', 'No Description'))
 
-    print(f"✅ 最新ニュースを取得しました: {title}")
-    return {
-        "title": title,
-        "link": link,
-        "description": description
-    }
+        news_list.append({
+            "title": title,
+            "link": link,
+            "description": description
+        })
+
+    print(f"✅ 最新ニュースを{len(news_list)}件取得しました。")
+    return news_list
 
 from google import genai
 
@@ -108,8 +111,10 @@ if __name__ == "__main__":
     import asyncio
     from note_poster import post_to_note
 
-    news = fetch_latest_ai_news()
-    if news:
+    # 自動化スクリプト(GitHub Actionsなど)の場合は常に1件目を使用する
+    news_list = fetch_latest_ai_news(limit=1)
+    if news_list:
+        news = news_list[0]
         title, body = generate_blog_content(news)
         if title and body:
             print(f"\n--- Title ---\n{title}\n")
