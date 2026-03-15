@@ -55,7 +55,7 @@ with st.sidebar:
                         client = genai.Client(api_key=gemini_key)
                         # APIの疎通確認
                         response = client.models.generate_content(
-                            model='gemini-3-flash-preview',
+                            model='gemini-3.1-flash-lite-preview',
                             contents='test'
                         )
                 # テスト成功時（またはキーが空の時は検証スキップ）
