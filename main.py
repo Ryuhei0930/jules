@@ -99,6 +99,9 @@ def generate_blog_content(news_entry):
                 body_lines.append(line)
 
         body = '\n'.join(body_lines).strip()
+
+        # 最後に元記事のリンクを付与
+        body += f"\n\n---\n\n**📰 元のニュース記事はこちら:**\n[{news_entry['title']}]({news_entry['link']})"
         print("✅ ブログ記事の生成が完了しました。")
         return title, body
 

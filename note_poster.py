@@ -29,9 +29,9 @@ async def post_to_note(title, content):
             await page.goto("https://note.com/login", wait_until="networkidle")
 
             # ログインフォームに入力
-            await page.fill('input[name="login"]', email)
-            await page.fill('input[name="password"]', password)
-            await page.click('button[type="submit"]')
+            await page.fill('#email', email)
+            await page.fill('#password', password)
+            await page.click('button:has-text("ログイン")')
 
             # ログイン完了を待機 (トップページなどに遷移するのを待つ)
             try:
