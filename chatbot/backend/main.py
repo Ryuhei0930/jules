@@ -5,10 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-env_path = os.path.join(os.path.dirname(__file__), ".env")
-load_dotenv(dotenv_path=env_path)
+# Try to find .env file dynamically (starts from current working directory and goes up)
+dotenv_path = find_dotenv()
+
+# Fallback to the same directory as main.py if find_dotenv() didn't find one
+if not dotenv_path:
+    dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+
+load_dotenv(dotenv_path=dotenv_path)
 
 app = FastAPI()
 
@@ -21,12 +27,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API Key Verification on Startup
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    # Just checking if the variable is loaded, do not log the key itself
+    print("✅ GEMINI_API_KEY: 読み込み成功")
+else:
+    print("❌ GEMINI_API_KEY: 未設定 (API呼び出し時にエラーになります)")
+
 # Load Knowledge Base (CSV)
 KNOWLEDGE_FILE = os.path.join(os.path.dirname(__file__), "knowledge.csv")
 knowledge_text = ""
 
 try:
     if os.path.exists(KNOWLEDGE_FILE):
+        print(f"📄 CSV読み込み先: {KNOWLEDGE_FILE}")
         df = pd.read_csv(KNOWLEDGE_FILE)
         # Assuming the CSV has at least two columns, like "Question" and "Answer" or similar chunks
         # We will concatenate all rows into a single text block for the prompt context.
@@ -35,11 +50,11 @@ try:
             row_text = " | ".join([f"{col}: {str(val)}" for col, val in row.items() if pd.notna(val)])
             chunks.append(row_text)
         knowledge_text = "\n".join(chunks)
-        print(f"Loaded {len(chunks)} knowledge chunks from CSV.")
+        print(f"✅ CSVデータ: {len(chunks)} 個のチャンクを読み込みました")
     else:
-        print(f"Warning: {KNOWLEDGE_FILE} not found. Starting without knowledge base.")
+        print(f"⚠️ 警告: CSVファイルが見つかりません。ナレッジなしで起動します。 (探索パス: {KNOWLEDGE_FILE})")
 except Exception as e:
-    print(f"Error loading {KNOWLEDGE_FILE}: {e}")
+    print(f"❌ CSV読み込みエラー ({KNOWLEDGE_FILE}): {e}")
 
 class ChatRequest(BaseModel):
     message: str
