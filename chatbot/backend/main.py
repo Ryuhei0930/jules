@@ -7,7 +7,8 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(dotenv_path=env_path)
 
 app = FastAPI()
 
@@ -21,7 +22,7 @@ app.add_middleware(
 )
 
 # Load Knowledge Base (CSV)
-KNOWLEDGE_FILE = "knowledge.csv"
+KNOWLEDGE_FILE = os.path.join(os.path.dirname(__file__), "knowledge.csv")
 knowledge_text = ""
 
 try:
