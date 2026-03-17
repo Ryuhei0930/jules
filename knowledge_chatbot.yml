@@ -1,0 +1,171 @@
+app:
+  description: '提供されたナレッジに基づいて質問に回答するチャットボットです。ナレッジにない情報は「分からない」と答えます。'
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: ナレッジベースチャットボット
+kind: app
+version: 0.1.2
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      image:
+        enabled: false
+        number_limits: 3
+        detail: high
+        transfer_methods:
+        - remote_url
+        - local_file
+    opening_statement: 'こんにちは！アップロードされたナレッジに基づいて質問にお答えします。'
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - id: start-source-knowledge-retrieval-target
+      source: start
+      sourceHandle: source
+      target: knowledge-retrieval
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - id: knowledge-retrieval-source-llm-target
+      source: knowledge-retrieval
+      sourceHandle: source
+      target: llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - id: llm-source-answer-target
+      source: llm
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 開始
+        type: start
+        variables: []
+      height: 54
+      id: start
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - '<placeholder_dataset_id>'
+        desc: ''
+        query_variable:
+          variable_selector:
+          - sys
+          - query
+        retrieval_mode: multiple
+        selected: false
+        title: 知識取得
+        type: knowledge-retrieval
+        variables: []
+      height: 98
+      id: knowledge-retrieval
+      position:
+        x: 384
+        y: 282
+      positionAbsolute:
+        x: 384
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - knowledge-retrieval
+          - result
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.0
+          mode: chat
+          name: gemini-1.5-flash
+          provider: google
+        prompt_template:
+        - role: system
+          text: |
+            あなたは提供されたナレッジベースに基づいて回答するAIアシスタントです。
+            以下のナレッジコンテキストのみを使用して、ユーザーの質問に答えてください。
+
+            <context>
+            {{#context#}}
+            </context>
+
+            注意事項：
+            1. 提供されたナレッジコンテキストに情報が含まれていない場合は、「申し訳ありませんが、提供されたナレッジにはその情報が含まれていません。」とだけ答えてください。推測や自身の一般的な知識を使って回答を作成しないでください。
+            2. ユーザーから挨拶などをされた場合は、丁寧に返し、質問を促してください。
+        - role: user
+          text: '{{#sys.query#}}'
+        selected: false
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 98
+      id: llm
+      position:
+        x: 688
+        y: 282
+      positionAbsolute:
+        x: 688
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#llm.text#}}'
+        desc: ''
+        selected: false
+        title: 回答
+        type: answer
+        variables: []
+      height: 103
+      id: answer
+      position:
+        x: 992
+        y: 282
+      positionAbsolute:
+        x: 992
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 1
