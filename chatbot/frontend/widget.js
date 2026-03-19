@@ -184,16 +184,21 @@
                 body: JSON.stringify({ message: text })
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                console.error("Backend Error:", data);
+                // バックエンドから詳細なエラーメッセージが返ってきている場合はそれを表示する
+                const errorMsg = data.detail || 'サーバーでエラーが発生しました。';
+                addMessage('bot', `【エラー】${errorMsg}`);
+                return;
             }
 
-            const data = await response.json();
             addMessage('bot', data.response);
 
         } catch (error) {
-            console.error('Error:', error);
-            addMessage('bot', 'エラーが発生しました。しばらく経ってからもう一度お試しください。');
+            console.error('Network/Fetch Error:', error);
+            addMessage('bot', '【通信エラー】サーバーに接続できません。バックエンド(uvicorn)が起動しているか確認してください。');
         } finally {
             inputField.disabled = false;
             sendBtn.disabled = false;

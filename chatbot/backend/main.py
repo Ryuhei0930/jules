@@ -14,6 +14,12 @@ dotenv_path = find_dotenv()
 if not dotenv_path:
     dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
 
+# .envが存在しない場合は、ユーザーが編集したかもしれない.env.exampleをフォールバックとして読み込む
+if not os.path.exists(dotenv_path):
+    example_path = os.path.join(os.path.dirname(__file__), ".env.example")
+    if os.path.exists(example_path):
+        dotenv_path = example_path
+
 load_dotenv(dotenv_path=dotenv_path)
 
 app = FastAPI()
@@ -22,7 +28,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production, replace with the specific domain(s)
-    allow_credentials=True,
+    allow_credentials=False, # allow_credentials must be False if allow_origins is ["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -83,7 +89,7 @@ async def chat_endpoint(request: ChatRequest):
         prompt = f"ユーザーの質問: {request.message}"
 
         response = client.models.generate_content(
-            model='gemini-3.1-flash', # Requested model
+            model='gemini-2.0-flash', # 安定板のGemini 2.0 Flashを指定
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -94,8 +100,10 @@ async def chat_endpoint(request: ChatRequest):
         return ChatResponse(response=response.text)
 
     except Exception as e:
-        print(f"Error calling Gemini: {e}")
-        raise HTTPException(status_code=500, detail="Error generating response.")
+        # セキュリティのため、フロントエンドには一般的なエラーを返し、詳細なエラーはサーバーのログ（コンソール）に出力する
+        error_msg = str(e)
+        print(f"❌ Gemini API エラー: {error_msg}")
+        raise HTTPException(status_code=500, detail="Gemini APIでエラーが発生しました。サーバーのログを確認してください。")
 
 @app.get("/")
 async def root():
