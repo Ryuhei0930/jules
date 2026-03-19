@@ -3,3 +3,7 @@ google-genai
 playwright
 feedparser
 python-dotenv
+fastapi
+uvicorn
+pandas
+python-multipart
