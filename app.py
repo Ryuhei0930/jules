@@ -123,17 +123,26 @@ if st.session_state.news_list:
                     st.stop()
 
                 # プレビュー表示（エキスパンダー内）
-                with st.expander("📝 生成された記事のプレビューを確認"):
+                with st.expander("📝 生成された記事のプレビューを確認", expanded=True):
                     st.subheader(title)
                     st.markdown(body)
 
                 # 3. Noteへの投稿
                 st.write("🌐 Noteへログインし、下書きとして保存中...")
-                asyncio.run(post_to_note(title, body))
+                try:
+                    asyncio.run(post_to_note(title, body))
+                    status.update(label="全ての処理が完了しました！", state="complete")
+                    st.balloons()
+                    st.success("🎉 Note.comの「記事」画面に下書きとして保存されました。確認して手動で公開してください！")
+                except Exception as e:
+                    status.update(label="Noteへの自動投稿に失敗しました", state="error")
+                    st.error(f"詳細: {e}")
+                    st.warning("⚠️ Note.comへの自動投稿がBot対策などにより失敗しました。以下のテキストボックスから記事をコピーして、手動でNoteに貼り付けてください。")
 
-                status.update(label="全ての処理が完了しました！", state="complete")
-                st.balloons()
-                st.success("🎉 Note.comの「記事」画面に下書きとして保存されました。確認して手動で公開してください！")
+                    # コピー用のテキストエリアを表示
+                    st.subheader("📋 手動コピー用")
+                    st.text_input("タイトル（クリックして全選択コピー）", value=title)
+                    st.text_area("本文（クリックして全選択コピー）", value=body, height=400)
 
             except Exception as e:
                 status.update(label="エラーが発生しました", state="error")
