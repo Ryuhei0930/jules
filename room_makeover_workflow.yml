@@ -1,0 +1,150 @@
+app:
+  description: プロのお部屋コーディネーターAI。お部屋の写真をアップロードすると、その構造を維持したまま家具だけをプロフェッショナルに模様替えした「新しい写真」を生成します。
+  icon: 🛋️
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: お部屋コーディネーターAI (画像生成版)
+  use_icon_as_answer_icon: false
+kind: app
+version: 0.1.2
+workflow:
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions: [.JPG, .JPEG, .PNG, .WEBP, .HEIC, .HEIF]
+      allowed_file_types: [image]
+      allowed_upload_methods: [local_file, remote_url]
+      enabled: true
+      image:
+        enabled: true
+        number_limits: 1
+        transfer_methods: [local_file, remote_url]
+      number_limits: 1
+    opening_statement: "こんにちは！プロのお部屋コーディネーターAIです。\n\n**【画像生成の手順】**\n1. チャット欄の「＋」ボタンから、お部屋の写真を送ってください。\n2. 希望のスタイル（モダン、北欧風など）を選択してください。\n3. AIが分析を行い、新しいお部屋のイメージ写真を生成します！"
+    retriever_resource: {enabled: true}
+    sensitive_word_avoidance: {enabled: false}
+    speech_to_text: {enabled: false}
+    text_to_speech: {enabled: false}
+  graph:
+    edges:
+    - data: {isInIteration: false, sourceType: start, targetType: llm}
+      id: start-llm_analyze
+      source: start
+      sourceHandle: source
+      target: llm_analyze
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: llm, targetType: tool}
+      id: llm_analyze-tool_image
+      source: llm_analyze
+      sourceHandle: source
+      target: tool_image
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: tool, targetType: answer}
+      id: tool_image-answer
+      source: tool_image
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 開始
+        type: start
+        variables:
+        - label: 希望のスタイル
+          options: [モダン, 北欧風, ヴィンテージ, ミニマル, ナチュラル]
+          required: true
+          type: select
+          variable: target_style
+      height: 90
+      id: start
+      position: {x: 80, y: 282}
+      positionAbsolute: {x: 80, y: 282}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context: {enabled: false, variable_selector: []}
+        desc: ''
+        model: {completion_params: {temperature: 0.7}, mode: chat, name: gemini-1.5-flash, provider: google}
+        prompt_template:
+        - id: system
+          role: system
+          text: |
+            あなたはプロのインテリアコーディネーターです。
+            ユーザーがアップロードしたお部屋の写真をVision機能で詳細に分析してください（壁の色、窓の位置、天井高、床の材質など）。
+
+            その情報を元に、指定されたスタイルに合わせて「模様替え後の新しい写真」を生成するための詳細な英語プロンプトを作成してください。
+            元の部屋の構造（建築的なレイアウト）は一切変更せず、家具、照明、装飾だけを高品質なものに置き換えるよう指示してください。
+
+            【出力ルール】
+            画像生成AIへの詳細な英語プロンプト（画像内の要素を具体的に描写したもの）のみを出力してください。
+        - id: user
+          role: user
+          text: "スタイル: {{#start.target_style#}}"
+        selected: false
+        title: お部屋分析・プロンプト生成
+        type: llm
+        variables: []
+        vision:
+          enabled: true
+          variable_selector: [sys, files]
+      height: 98
+      id: llm_analyze
+      position: {x: 380, y: 282}
+      positionAbsolute: {x: 380, y: 282}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        provider_id: openai
+        provider_name: openai
+        provider_type: builtin
+        selected: false
+        title: 画像生成 (DALL-E 3)
+        tool_label: DALL-E 3
+        tool_name: dalle3
+        tool_parameters:
+          prompt: '{{#llm_analyze.text#}}'
+          quality: hd
+          size: 1024x1024
+          style: vivid
+        type: tool
+      height: 98
+      id: tool_image
+      position: {x: 680, y: 282}
+      positionAbsolute: {x: 680, y: 282}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: "### 模様替え後のイメージ画像が完成しました！\n\n{{#tool_image.text#}}\n\n---\n元の部屋の構造を維持しながら、{{#start.target_style#}}スタイルで家具を新しくコーディネートしました。いかがでしょうか？"
+        desc: ''
+        selected: false
+        title: 回答
+        type: answer
+        variables: []
+      height: 103
+      id: answer
+      position: {x: 980, y: 282}
+      positionAbsolute: {x: 980, y: 282}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport: {x: 0, y: 0, zoom: 1}
