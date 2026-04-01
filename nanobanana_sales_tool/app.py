@@ -94,9 +94,16 @@ def main():
     st.title("🏡 新築マンション 家具配置シミュレーター")
     st.write("家具の入っていないお部屋の写真から、AIが自動で家具を配置したイメージを生成します。")
 
-    # APIキーをセッションステートで管理する (固定のキーをデフォルトでセット)
+    # APIキーをセッションステートで管理する
     if 'gemini_api_key' not in st.session_state:
-        st.session_state['gemini_api_key'] = "AIzaSyAef093oBQJe3EDb3p7HPaRwhFVmWi4AOI"
+        # Streamlit Secrets、もしくはローカルの環境変数から読み込む
+        env_key = os.environ.get("GOOGLE_CLOUD_API_KEY", "")
+
+        # Streamlit Secrets が設定されている場合はそちらを優先
+        if "GOOGLE_CLOUD_API_KEY" in st.secrets:
+            env_key = st.secrets["GOOGLE_CLOUD_API_KEY"]
+
+        st.session_state['gemini_api_key'] = env_key
 
     # 設定入力
     st.sidebar.header("⚙️ 設定 (Google Cloud)")
