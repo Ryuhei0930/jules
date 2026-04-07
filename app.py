@@ -136,16 +136,16 @@ else:
     uploaded_file = st.camera_input("カメラで部屋を撮影してください")
 
 style_options = {
-    "モダン (Modern)": "Modern and sleek furniture, clean lines, neutral colors.",
-    "北欧風 (Nordic)": "Nordic style furniture, bright, cozy, light wood, minimalist.",
-    "インダストリアル (Industrial)": "Industrial style, exposed brick, metal and wood furniture, raw.",
-    "自由入力 (Free Text)": ""
+    "モダン": "モダンで洗練された家具、すっきりとしたライン、落ち着いた色合い。",
+    "北欧風": "北欧スタイルの家具、明るく居心地が良い、明るい木目、ミニマリスト。",
+    "インダストリアル": "インダストリアルスタイル、レンガ打ちっぱなし、金属と木の家具、無骨な雰囲気。",
+    "自由入力": ""
 }
 
 selected_style_name = st.selectbox("家具のスタイルを選択してください", list(style_options.keys()))
 
 custom_prompt = ""
-if selected_style_name == "自由入力 (Free Text)":
+if selected_style_name == "自由入力":
     custom_prompt = st.text_area("配置したい家具のイメージを入力してください")
 
 if uploaded_file is not None:
@@ -165,7 +165,7 @@ if uploaded_file is not None:
 
         # Determine prompt
         base_prompt = db.get_base_prompt()
-        if selected_style_name == "自由入力 (Free Text)":
+        if selected_style_name == "自由入力":
             if not custom_prompt:
                 st.warning("自由入力の場合は、イメージを入力してください。")
                 st.stop()
@@ -188,11 +188,21 @@ if uploaded_file is not None:
                     )
                 )
 
-                if response.generated_images:
-                    generated_image = response.generated_images[0].image
+                if hasattr(response, "candidates") and response.candidates and hasattr(response.candidates[0], "content") and response.candidates[0].content.parts:
+                    # Look for the generated image part
+                    generated_image_bytes = None
+                    for part in response.candidates[0].content.parts:
+                        if hasattr(part, "inline_data") and part.inline_data:
+                            generated_image_bytes = part.inline_data.data
+                            break
+
+                    if not generated_image_bytes:
+                        status.update(label="画像が生成されませんでした。", state="error")
+                        st.error("AIからのレスポンスに画像データが含まれていませんでした。")
+                        st.stop()
 
                     # Convert to PIL Image for watermarking
-                    pil_img = Image.open(io.BytesIO(generated_image.image_bytes))
+                    pil_img = Image.open(io.BytesIO(generated_image_bytes))
 
                     # Apply watermark
                     watermark_text = f"【{mansion_name}】専用作成" if mansion_name else "Sample"

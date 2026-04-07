@@ -134,7 +134,7 @@ with tab5:
         for log in logs:
             with st.expander(f"🕒 {log['timestamp']} | ユーザー: {log['username']} ({log.get('mansion_name', '未設定')})"):
                 st.markdown("**送信されたプロンプト**")
-                st.code(log['prompt'], language="text")
+                st.code(log['prompt'] or "プロンプトなし", language="text")
 
                 # Render images if paths exist
                 orig_path = log.get('original_image_path')

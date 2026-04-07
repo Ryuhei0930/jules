@@ -51,10 +51,18 @@ def init_db():
     # Apply migration for new columns to generations if they don't exist
     try:
         c.execute("ALTER TABLE generations ADD COLUMN prompt TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
         c.execute("ALTER TABLE generations ADD COLUMN original_image_path TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
         c.execute("ALTER TABLE generations ADD COLUMN generated_image_path TEXT")
     except sqlite3.OperationalError:
-        pass # Columns already exist
+        pass
 
     # Create default admin if not exists
     c.execute("SELECT * FROM users WHERE username = 'admin'")
