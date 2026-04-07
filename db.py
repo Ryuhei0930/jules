@@ -106,6 +106,22 @@ def set_api_key(api_key):
     conn.commit()
     conn.close()
 
+def get_base_prompt():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT value FROM settings WHERE key = 'base_prompt'")
+    result = c.fetchone()
+    conn.close()
+    default_prompt = "この空の部屋の写真に自然に家具を配置してください。元のパースペクティブと照明を維持すること。"
+    return result[0] if result else default_prompt
+
+def set_base_prompt(prompt):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('base_prompt', ?)", (prompt,))
+    conn.commit()
+    conn.close()
+
 def log_generation(user_id):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()

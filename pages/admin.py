@@ -25,7 +25,7 @@ st.sidebar.divider()
 st.sidebar.markdown(f"ログイン中: **{st.session_state.user['username']}**")
 
 # --- Tabs ---
-tab1, tab2, tab3 = st.tabs(["APIキー設定", "クライアント管理", "利用状況・カウンター"])
+tab1, tab2, tab3, tab4 = st.tabs(["APIキー設定", "基本プロンプト設定", "クライアント管理", "利用状況・カウンター"])
 
 with tab1:
     st.header("🔑 Gemini APIキー設定")
@@ -42,7 +42,25 @@ with tab1:
                 st.error("APIキーを入力してください。")
 
 with tab2:
+    st.header("📝 基本プロンプト設定")
+    st.markdown("ここで設定した文章が、全ての画像生成の際に「共通のシステム指示（ベース）」としてAIに渡されます。")
+    current_prompt = db.get_base_prompt()
+
+    with st.form("prompt_form"):
+        new_prompt = st.text_area("基本プロンプト", value=current_prompt, height=150)
+        if st.form_submit_button("設定を保存"):
+            db.set_base_prompt(new_prompt)
+            st.success("基本プロンプトを更新しました。")
+
+with tab3:
     st.header("👥 クライアントアカウント管理")
+    st.info("""
+    **【ログインIDの発行方法とクライアントへの案内手順】**
+    1. 下記の「新規クライアント追加」を開きます。
+    2. 任意の「ログインID」と「パスワード」を入力し、毎月の「生成上限枚数」を設定して「追加」ボタンを押します。
+    3. クライアントには、**作成したログインID・パスワード** と **このシステムのURL** をお伝えください。
+    ※ クライアント側からパスワードの変更はできないため、管理者が安全に保管・伝達してください。
+    """)
 
     # Add new user
     with st.expander("新規クライアント追加", expanded=False):
@@ -83,7 +101,7 @@ with tab2:
     else:
         st.info("登録されているクライアントはいません。")
 
-with tab3:
+with tab4:
     st.header("📊 今月のクライアント利用状況")
     usage_data = db.get_all_monthly_usage()
 

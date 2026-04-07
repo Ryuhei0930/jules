@@ -63,7 +63,13 @@ with st.sidebar:
 # Main Functionality
 st.markdown("お部屋の写真に、AIが自動で家具を配置（バーチャルステージング）します。")
 
-uploaded_file = st.file_uploader("お部屋の写真をアップロードしてください (JPG/PNG)", type=["jpg", "jpeg", "png"])
+input_method = st.radio("写真の入力方法を選択してください", ("ファイルアップロード", "カメラで撮影"))
+
+uploaded_file = None
+if input_method == "ファイルアップロード":
+    uploaded_file = st.file_uploader("お部屋の写真をアップロードしてください (JPG/PNG)", type=["jpg", "jpeg", "png"])
+else:
+    uploaded_file = st.camera_input("カメラで部屋を撮影してください")
 
 style_options = {
     "モダン (Modern)": "Modern and sleek furniture, clean lines, neutral colors.",
@@ -94,13 +100,14 @@ if uploaded_file is not None:
             st.stop()
 
         # Determine prompt
+        base_prompt = db.get_base_prompt()
         if selected_style_name == "自由入力 (Free Text)":
             if not custom_prompt:
                 st.warning("自由入力の場合は、イメージを入力してください。")
                 st.stop()
-            prompt = f"Add {custom_prompt} to this empty room naturally. Maintain original perspective and lighting."
+            final_prompt = f"{base_prompt}\n\n追加する家具のスタイル・イメージ: {custom_prompt}"
         else:
-            prompt = f"Add {style_options[selected_style_name]} to this empty room naturally. Maintain original perspective and lighting."
+            final_prompt = f"{base_prompt}\n\n追加する家具のスタイル・イメージ: {style_options[selected_style_name]}"
 
         with st.status("AIが画像を生成中...", expanded=True) as status:
             try:
@@ -111,7 +118,7 @@ if uploaded_file is not None:
                 client = genai.Client(api_key=api_key)
                 response = client.models.generate_content(
                     model='gemini-3.1-flash-image-preview',
-                    contents=[prompt, image],
+                    contents=[final_prompt, image],
                     config=genai.types.GenerateContentConfig(
                          response_modalities=["IMAGE"],
                     )
