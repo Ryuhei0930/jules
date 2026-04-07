@@ -25,7 +25,7 @@ st.sidebar.divider()
 st.sidebar.markdown(f"ログイン中: **{st.session_state.user['username']}**")
 
 # --- Tabs ---
-tab1, tab2, tab3, tab4 = st.tabs(["APIキー設定", "基本プロンプト設定", "クライアント管理", "利用状況・カウンター"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["APIキー設定", "基本プロンプト設定", "クライアント管理", "利用状況・カウンター", "生成履歴レポート"])
 
 with tab1:
     st.header("🔑 Gemini APIキー設定")
@@ -64,35 +64,39 @@ with tab3:
 
     # Add new user
     with st.expander("新規クライアント追加", expanded=False):
-        with st.form("add_user_form"):
+        with st.form("add_user_form", clear_on_submit=True):
             new_username = st.text_input("ログインID (半角英数字)")
             new_password = st.text_input("パスワード", type="password")
+            mansion_name = st.text_input("対象物件名・マンション名（透かし文字として印字されます）", placeholder="例: アーバンレジデンス渋谷")
             new_limit = st.number_input("月間生成上限枚数", min_value=1, value=50, step=10)
 
             if st.form_submit_button("追加"):
-                if new_username and new_password:
-                    if db.add_user(new_username, new_password, new_limit):
-                        st.success(f"ユーザー '{new_username}' を追加しました。")
+                if not new_username or not new_password:
+                    st.error("IDとパスワードは必須です。")
+                elif not mansion_name:
+                    st.error("対象物件名は必須です。")
+                else:
+                    if db.add_user(new_username, new_password, new_limit, mansion_name):
+                        st.success(f"ユーザー '{new_username}' ({mansion_name}) を追加しました。")
                         st.rerun()
                     else:
                         st.error("そのログインIDは既に存在します。")
-                else:
-                    st.error("IDとパスワードは必須です。")
 
     st.subheader("登録済みクライアント一覧")
     users = db.get_users()
     if users:
         for user in users:
-            col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+            col1, col2, col3, col4, col5 = st.columns([2, 3, 2, 2, 1])
             col1.write(f"**ID:** {user['username']}")
-            with col2:
-                new_lim = st.number_input("上限", min_value=1, value=user['monthly_limit'], key=f"lim_{user['id']}", label_visibility="collapsed")
+            col2.write(f"**物件:** {user.get('mansion_name', '未設定')}")
             with col3:
+                new_lim = st.number_input("上限", min_value=1, value=user['monthly_limit'], key=f"lim_{user['id']}", label_visibility="collapsed")
+            with col4:
                 if st.button("上限更新", key=f"upd_{user['id']}"):
                     db.update_user_limit(user['id'], new_lim)
                     st.success("更新しました")
                     st.rerun()
-            with col4:
+            with col5:
                 if st.button("削除", key=f"del_{user['id']}", type="primary"):
                     db.delete_user(user['id'])
                     st.success("削除しました")
@@ -107,11 +111,40 @@ with tab4:
 
     if usage_data:
         for data in usage_data:
-            st.markdown(f"### {data['username']}")
+            mansion = data.get('mansion_name') or '未設定'
+            st.markdown(f"### {data['username']} ({mansion})")
             col1, col2 = st.columns(2)
             col1.metric("今月の生成枚数", f"{data['count']} 枚")
             col2.metric("上限設定", f"{data['monthly_limit']} 枚")
-            st.progress(min(data['count'] / data['monthly_limit'], 1.0))
+            if data['monthly_limit'] > 0:
+                st.progress(min(data['count'] / data['monthly_limit'], 1.0))
             st.divider()
     else:
         st.info("データがありません。")
+
+with tab5:
+    st.header("📸 クライアント生成履歴・分析レポート")
+    st.markdown("クライアントがどのような画像をアップロードし、どのようなプロンプト（指示）で生成したかを確認できます。今後の提案の参考にしてください。")
+
+    logs = db.get_recent_generations(limit=30)
+
+    if not logs:
+        st.info("まだ生成履歴がありません。")
+    else:
+        for log in logs:
+            with st.expander(f"🕒 {log['timestamp']} | ユーザー: {log['username']} ({log.get('mansion_name', '未設定')})"):
+                st.markdown("**送信されたプロンプト**")
+                st.code(log['prompt'], language="text")
+
+                # Render images if paths exist
+                orig_path = log.get('original_image_path')
+                gen_path = log.get('generated_image_path')
+
+                if orig_path and gen_path and os.path.exists(orig_path) and os.path.exists(gen_path):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.image(orig_path, caption="アップロードされた元の部屋", use_container_width=True)
+                    with col2:
+                        st.image(gen_path, caption="AIによる家具配置後", use_container_width=True)
+                else:
+                    st.warning("画像ファイルがローカルに見つからないか、保存されていません（古いデータなど）。")

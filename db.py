@@ -18,9 +18,16 @@ def init_db():
             username TEXT UNIQUE,
             password TEXT,
             role TEXT,
-            monthly_limit INTEGER DEFAULT 50
+            monthly_limit INTEGER DEFAULT 50,
+            mansion_name TEXT
         )
     ''')
+
+    # Apply migration if column doesn't exist (for existing databases)
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN mansion_name TEXT")
+    except sqlite3.OperationalError:
+        pass # Column already exists
     # Settings table (for API Key)
     c.execute('''
         CREATE TABLE IF NOT EXISTS settings (
@@ -34,9 +41,20 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            prompt TEXT,
+            original_image_path TEXT,
+            generated_image_path TEXT,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
+
+    # Apply migration for new columns to generations if they don't exist
+    try:
+        c.execute("ALTER TABLE generations ADD COLUMN prompt TEXT")
+        c.execute("ALTER TABLE generations ADD COLUMN original_image_path TEXT")
+        c.execute("ALTER TABLE generations ADD COLUMN generated_image_path TEXT")
+    except sqlite3.OperationalError:
+        pass # Columns already exist
 
     # Create default admin if not exists
     c.execute("SELECT * FROM users WHERE username = 'admin'")
@@ -51,26 +69,26 @@ def init_db():
 def authenticate(username, password):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT id, role FROM users WHERE username = ? AND password = ?", (username, hash_password(password)))
+    c.execute("SELECT id, role, mansion_name FROM users WHERE username = ? AND password = ?", (username, hash_password(password)))
     user = c.fetchone()
     conn.close()
-    return {"id": user[0], "role": user[1]} if user else None
+    return {"id": user[0], "role": user[1], "mansion_name": user[2]} if user else None
 
 def get_users():
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT id, username, role, monthly_limit FROM users WHERE role = 'client'")
+    c.execute("SELECT id, username, role, monthly_limit, mansion_name FROM users WHERE role = 'client'")
     users = [dict(row) for row in c.fetchall()]
     conn.close()
     return users
 
-def add_user(username, password, monthly_limit):
+def add_user(username, password, monthly_limit, mansion_name=None):
     try:
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
-        c.execute("INSERT INTO users (username, password, role, monthly_limit) VALUES (?, ?, 'client', ?)",
-                  (username, hash_password(password), monthly_limit))
+        c.execute("INSERT INTO users (username, password, role, monthly_limit, mansion_name) VALUES (?, ?, 'client', ?, ?)",
+                  (username, hash_password(password), monthly_limit, mansion_name))
         conn.commit()
         conn.close()
         return True
@@ -122,14 +140,34 @@ def set_base_prompt(prompt):
     conn.commit()
     conn.close()
 
-def log_generation(user_id):
+def log_generation(user_id, prompt=None, original_image_path=None, generated_image_path=None):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     # Ensure timezone consistency by using python's utcnow
     now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
-    c.execute('INSERT INTO generations (user_id, timestamp) VALUES (?, ?)', (user_id, now))
+    c.execute('''
+        INSERT INTO generations (user_id, timestamp, prompt, original_image_path, generated_image_path)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (user_id, now, prompt, original_image_path, generated_image_path))
     conn.commit()
     conn.close()
+
+def get_recent_generations(limit=50):
+    """Fetch recent generation logs including prompts and image paths for reporting."""
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('''
+        SELECT g.id, g.timestamp, g.prompt, g.original_image_path, g.generated_image_path,
+               u.username, u.mansion_name
+        FROM generations g
+        JOIN users u ON g.user_id = u.id
+        ORDER BY g.timestamp DESC
+        LIMIT ?
+    ''', (limit,))
+    logs = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return logs
 
 def get_user_monthly_usage(user_id):
     conn = sqlite3.connect(DB_FILE)
@@ -151,8 +189,9 @@ def get_all_monthly_usage():
     c = conn.cursor()
     current_month = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m')
 
+    # Also fetch the mansion_name from the users table
     c.execute('''
-        SELECT u.username, u.monthly_limit, COUNT(g.id) as count
+        SELECT u.username, u.mansion_name, u.monthly_limit, COUNT(g.id) as count
         FROM users u
         LEFT JOIN generations g ON u.id = g.user_id AND g.timestamp LIKE ?
         WHERE u.role = 'client'

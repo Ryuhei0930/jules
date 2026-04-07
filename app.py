@@ -3,9 +3,65 @@ import os
 from google import genai
 from PIL import Image
 import io
+from PIL import ImageDraw, ImageFont
+import datetime
 import db
 
 st.set_page_config(page_title="バーチャル家具配置ツール", page_icon="🛋️", layout="centered")
+
+# Ensure image directory exists
+IMAGE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "images")
+os.makedirs(IMAGE_DIR, exist_ok=True)
+
+def add_watermark(pil_image, text):
+    """Adds a semi-transparent watermark to the generated image to prevent misuse."""
+    try:
+        img = pil_image.convert("RGBA")
+        txt_img = Image.new('RGBA', img.size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(txt_img)
+
+        # Calculate font size based on image width
+        font_size = max(int(img.width / 30), 20)
+        try:
+            # Try to load a Japanese font, fallback to default
+            font = ImageFont.truetype("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf", font_size)
+        except IOError:
+            try:
+                # Common path for Japanese fonts on some Linux distros
+                font = ImageFont.truetype("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", font_size)
+            except IOError:
+                # Ultimate fallback
+                font = ImageFont.load_default()
+
+        # Calculate text width/height to center at bottom
+        text_bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+
+        # Position at bottom right with some padding
+        padding = 20
+        x = img.width - text_width - padding
+        y = img.height - text_height - padding
+
+        # Add a slightly transparent black rectangle background for readability
+        bg_padding = 10
+        draw.rectangle(
+            [x - bg_padding, y - bg_padding, x + text_width + bg_padding, y + text_height + bg_padding],
+            fill=(0, 0, 0, 150) # Black with ~60% opacity
+        )
+
+        # Draw white text
+        draw.text((x, y), text, font=font, fill=(255, 255, 255, 255))
+
+        # Composite the images
+        watermarked = Image.alpha_composite(img, txt_img)
+
+        # Convert back to RGB for saving/displaying
+        return watermarked.convert("RGB")
+    except Exception as e:
+        # If watermarking fails for any reason, return original to prevent app crash
+        print(f"Watermarking failed: {e}")
+        return pil_image
 
 # Initialize DB on first run
 db.init_db()
@@ -25,7 +81,12 @@ if st.session_state.user is None:
     if st.button("ログイン"):
         user = db.authenticate(username, password)
         if user:
-            st.session_state.user = {"id": user["id"], "username": username, "role": user["role"]}
+            st.session_state.user = {
+                "id": user["id"],
+                "username": username,
+                "role": user["role"],
+                "mansion_name": user.get("mansion_name")
+            }
             st.success("ログインに成功しました。")
             st.rerun()
         else:
@@ -40,7 +101,10 @@ if st.session_state.user["role"] == "admin":
     st.stop()
 
 # --- Client Dashboard ---
-st.title("🛋️ バーチャル家具配置ツール")
+mansion_name = st.session_state.user.get('mansion_name')
+title_prefix = f"【{mansion_name}】専用 " if mansion_name else ""
+
+st.title(f"🛋️ {title_prefix}バーチャル家具配置ツール")
 
 # Sidebar: Usage Counter and Logout
 with st.sidebar:
@@ -127,12 +191,39 @@ if uploaded_file is not None:
                 if response.generated_images:
                     generated_image = response.generated_images[0].image
 
-                    # Log generation
-                    db.log_generation(st.session_state.user["id"])
+                    # Convert to PIL Image for watermarking
+                    pil_img = Image.open(io.BytesIO(generated_image.image_bytes))
+
+                    # Apply watermark
+                    watermark_text = f"【{mansion_name}】専用作成" if mansion_name else "Sample"
+                    watermarked_image = add_watermark(pil_img, watermark_text)
+
+                    # Save images locally for admin reporting
+                    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    username = st.session_state.user["username"]
+
+                    orig_filename = f"{username}_{timestamp_str}_orig.jpg"
+                    orig_filepath = os.path.join(IMAGE_DIR, orig_filename)
+                    image.convert("RGB").save(orig_filepath, "JPEG")
+
+                    gen_filename = f"{username}_{timestamp_str}_gen.jpg"
+                    gen_filepath = os.path.join(IMAGE_DIR, gen_filename)
+                    watermarked_image.convert("RGB").save(gen_filepath, "JPEG", quality=95)
+
+                    # Log generation with paths and prompt
+                    # We store paths relative to the project root
+                    db.log_generation(
+                        user_id=st.session_state.user["id"],
+                        prompt=final_prompt,
+                        original_image_path=os.path.join("data", "images", orig_filename),
+                        generated_image_path=os.path.join("data", "images", gen_filename)
+                    )
 
                     status.update(label="生成が完了しました！", state="complete")
-                    st.image(generated_image, caption="AIが配置した家具", use_column_width=True)
-                    st.success("画像の生成に成功しました。左サイドバーのカウンターが更新されました。")
+                    st.image(watermarked_image, caption="AIが配置した家具", use_column_width=True)
+                    st.success("画像の生成に成功しました。")
+                    # Force sidebar refresh to update the counter
+                    st.rerun()
                 else:
                     status.update(label="画像が生成されませんでした。", state="error")
                     st.error("AIからの画像レスポンスが空でした。")
