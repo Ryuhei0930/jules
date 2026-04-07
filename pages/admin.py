@@ -9,7 +9,7 @@ import db
 st.set_page_config(page_title="システム管理画面", page_icon="⚙️", layout="wide")
 
 # Check if admin is logged in
-if "user" not in st.session_state or st.session_state.user["role"] != "admin":
+if "user" not in st.session_state or st.session_state.user is None or st.session_state.user.get("role") != "admin":
     st.warning("管理者としてログインしてください。")
     if st.button("ログイン画面に戻る"):
         st.switch_page("app.py")
