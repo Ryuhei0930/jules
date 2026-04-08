@@ -145,9 +145,18 @@ else:
     uploaded_file = st.camera_input("カメラで部屋を撮影してください")
 
 style_options = {
-    "モダン": "モダンで洗練された家具、すっきりとしたライン、落ち着いた色合い。",
-    "北欧風": "北欧スタイルの家具、明るく居心地が良い、明るい木目、ミニマリスト。",
-    "インダストリアル": "インダストリアルスタイル、レンガ打ちっぱなし、金属と木の家具、無骨な雰囲気。",
+    "モダン (Modern)": "モダンで洗練された家具、すっきりとしたライン、落ち着いたモノトーンやニュートラルな色合い。Modern and sleek furniture, clean lines, neutral colors.",
+    "北欧風 (Scandinavian/Nordic)": "北欧スタイルの家具、明るく居心地が良い、明るい木目、白を基調としたミニマリストな空間。Scandinavian style furniture, bright, cozy, light wood, white-based minimalist.",
+    "インダストリアル (Industrial)": "インダストリアルスタイル、レンガ打ちっぱなし、アイアン（金属）と無垢材の家具、無骨な雰囲気。Industrial style, exposed brick, dark metal and wood furniture, raw.",
+    "和モダン (Japanese Modern)": "和風とモダンを融合したスタイル、低い家具、障子や竹の要素、落ち着いたアースカラー。Japanese modern style, low furniture, shoji or bamboo elements, calm earth colors.",
+    "ヴィンテージ/レトロ (Vintage/Retro)": "古き良き時代のヴィンテージ家具、レザーソファ、深みのある木材、ノスタルジックな雰囲気。Vintage or retro furniture, leather sofa, dark rich wood, nostalgic atmosphere.",
+    "西海岸風 (West Coast/Surf)": "カリフォルニアのビーチハウスのような西海岸スタイル、ブルーと白、デニム生地、流木、リラックスした雰囲気。West coast California beach house style, blue and white, denim fabric, driftwood, relaxed vibe.",
+    "ボタニカル (Botanical/Jungle)": "観葉植物をふんだんに取り入れたボタニカルスタイル、ラタン（籐）の家具、緑豊かなリラックス空間。Botanical style with lots of indoor plants, rattan furniture, lush green relaxing space.",
+    "ホテルライク (Hotel-like/Luxury)": "高級ホテルのようなラグジュアリーな空間、大理石、ベルベット素材、間接照明、洗練されたデザイン。Luxury hotel-like space, marble, velvet materials, indirect lighting, sophisticated design.",
+    "韓国風カフェ (Korean Cafe)": "韓国カフェのような淡色系インテリア、ウェーブミラー、丸みのある家具、アイボリーやベージュ基調。Korean cafe style pastel interior, wave mirror, rounded furniture, ivory and beige tones.",
+    "ミッドセンチュリー (Mid-Century)": "1950年代風のミッドセンチュリーデザイン、幾何学模様、ポップな色使い、曲木細工の家具。Mid-century modern design, geometric patterns, pop colors, bentwood furniture.",
+    "シャビーシック (Shabby Chic)": "使い込まれたアンティーク感のある白家具、フリルやレース、フェミニンでロマンチックな空間。Shabby chic style, distressed white antique furniture, feminine and romantic space.",
+    "アジアンリゾート (Asian Resort)": "バリ島などのリゾート地を思わせるアジアンスタイル、ウォーターヒヤシンス、ダークブラウン、開放的。Asian resort style like Bali, water hyacinth furniture, dark brown, open and airy.",
     "自由入力": ""
 }
 
@@ -158,7 +167,9 @@ if selected_style_name == "自由入力":
     custom_prompt = st.text_area("配置したい家具のイメージを入力してください")
 
 if uploaded_file is not None:
-    st.image(uploaded_file, caption="アップロードされた写真", use_column_width=True)
+    # Remove the generic original image display here so we can show it side-by-side later
+    # or keep it as a preview before generation.
+    st.image(uploaded_file, caption="アップロードされた写真（プレビュー）", use_container_width=True)
 
     if st.button("家具を配置する (画像を生成)", type="primary"):
         # Check limit
@@ -239,8 +250,16 @@ if uploaded_file is not None:
                     )
 
                     status.update(label="生成が完了しました！", state="complete")
-                    st.image(watermarked_image, caption="AIが配置した家具", use_column_width=True)
                     st.success("画像の生成に成功しました。")
+
+                    # Display Side-by-Side Comparison
+                    st.markdown("### 📸 ビフォー・アフター")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.image(image, caption="元の写真", use_container_width=True)
+                    with col2:
+                        st.image(watermarked_image, caption="AIが配置した家具", use_container_width=True)
+
                     # Update sidebar counters dynamically without a full rerun
                     update_sidebar_counters()
                 else:
