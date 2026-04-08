@@ -1,151 +1,278 @@
 import streamlit as st
-import asyncio
 import os
-import subprocess
-from main import fetch_latest_ai_news, generate_blog_content
-from note_poster import post_to_note
-from dotenv import set_key
 from google import genai
+from PIL import Image
+import io
+from PIL import ImageDraw, ImageFont
+import datetime
+import db
 
-st.set_page_config(page_title="AIニュース自動ブログ生成", page_icon="🤖", layout="centered")
+st.set_page_config(page_title="バーチャル家具配置ツール", page_icon="🛋️", layout="centered")
 
-@st.cache_resource
-def install_playwright():
-    """Streamlit Cloud環境でPlaywrightのブラウザをインストールするための関数"""
+# Ensure image directory exists
+IMAGE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "images")
+os.makedirs(IMAGE_DIR, exist_ok=True)
+
+def add_watermark(pil_image, text):
+    """Adds a semi-transparent watermark to the generated image to prevent misuse."""
     try:
-        # PlaywrightのChromiumブラウザをインストール
-        subprocess.run(["playwright", "install", "chromium"], check=True)
-        # ※Streamlit Cloudではsudo権限がないためinstall-depsは実行できません。
-        # 必要なシステムパッケージは packages.txt 側でインストールさせます。
-        return True
-    except Exception as e:
-        st.error(f"Playwrightのインストール中にエラーが発生しました: {e}")
-        return False
+        img = pil_image.convert("RGBA")
+        txt_img = Image.new('RGBA', img.size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(txt_img)
 
-# 初回起動時にPlaywrightをインストール
-install_playwright()
-
-def save_env(key, value):
-    """環境変数と.envファイルに設定を保存する"""
-    os.environ[key] = value
-    # .envファイルが存在しない場合は作成する
-    if not os.path.exists('.env'):
-        with open('.env', 'w') as f:
-            f.write('')
-    set_key('.env', key, value)
-
-st.title("🤖 AIニュース自動ブログ生成アプリ")
-st.markdown("""
-このアプリは、最新のAIニュースを自動で取得し、Geminiに「ワイドショーの討論形式」で面白いブログ記事を作成させ、**Note.comへ自動で下書き保存**するシステムです。
-""")
-
-with st.sidebar:
-    st.header("⚙️ 初期設定")
-    with st.form("settings_form"):
-        gemini_key = st.text_input("Gemini APIキー", value=os.environ.get("GEMINI_API_KEY", ""), type="password")
-        note_email = st.text_input("Note ログインメールアドレス", value=os.environ.get("NOTE_EMAIL", ""))
-        note_pass = st.text_input("Note ログインパスワード", value=os.environ.get("NOTE_PASSWORD", ""), type="password")
-
-        submitted = st.form_submit_button("設定を保存してAPIをテスト")
-        if submitted:
-            # APIキーの有効性テスト
+        # Calculate font size based on image width
+        font_size = max(int(img.width / 30), 20)
+        try:
+            # Try to load a Japanese font, fallback to default
+            font = ImageFont.truetype("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf", font_size)
+        except IOError:
             try:
-                if gemini_key:
-                    with st.spinner("APIキーを検証中..."):
-                        client = genai.Client(api_key=gemini_key)
-                        # APIの疎通確認
-                        response = client.models.generate_content(
-                            model='gemini-3.1-flash-lite-preview',
-                            contents='test'
-                        )
-                # テスト成功時（またはキーが空の時は検証スキップ）
-                save_env("GEMINI_API_KEY", gemini_key)
-                save_env("NOTE_EMAIL", note_email)
-                save_env("NOTE_PASSWORD", note_pass)
-                if gemini_key:
-                    st.success("✅ APIテスト成功！設定を保存しました。")
-                else:
-                    st.success("✅ 設定を保存しました。")
-            except Exception as e:
-                st.error("❌ APIキーが無効、または使用できません。正しいキーを入力してください。")
-                st.error(f"詳細: {e}")
+                # Common path for Japanese fonts on some Linux distros
+                font = ImageFont.truetype("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", font_size)
+            except IOError:
+                # Ultimate fallback
+                font = ImageFont.load_default()
 
-st.divider()
+        # Calculate text width/height to center at bottom
+        text_bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
 
-st.subheader("📰 ブログ化するニュースの選択")
-# セッションステートにニュースリストを保存
-if "news_list" not in st.session_state:
-    st.session_state.news_list = []
+        # Position at bottom right with some padding
+        padding = 20
+        x = img.width - text_width - padding
+        y = img.height - text_height - padding
 
-col1, col2 = st.columns([1, 1])
-with col1:
-    if st.button("🔄 最新のニュースを取得する"):
-        with st.spinner("RSSから最新ニュースを取得中..."):
-            st.session_state.news_list = fetch_latest_ai_news(limit_per_feed=3)
-            if not st.session_state.news_list:
-                st.warning("ニュースの取得に失敗したか、記事がありません。")
+        # Add a slightly transparent black rectangle background for readability
+        bg_padding = 10
+        draw.rectangle(
+            [x - bg_padding, y - bg_padding, x + text_width + bg_padding, y + text_height + bg_padding],
+            fill=(0, 0, 0, 150) # Black with ~60% opacity
+        )
 
-if st.session_state.news_list:
-    news_titles = [f"{i+1}. [{news.get('source', '不明')}] {news['title']}" for i, news in enumerate(st.session_state.news_list)]
-    selected_title = st.selectbox("ブログ化する記事を選んでください:", options=news_titles)
+        # Draw white text
+        draw.text((x, y), text, font=font, fill=(255, 255, 255, 255))
 
-    # 選択された記事のインデックスを取得
-    selected_index = news_titles.index(selected_title)
-    selected_news = st.session_state.news_list[selected_index]
+        # Composite the images
+        watermarked = Image.alpha_composite(img, txt_img)
 
-    # 概要プレビュー
-    with st.expander("📄 記事の概要プレビュー"):
-        st.write(selected_news['description'])
-        st.markdown(f"[元の記事を読む]({selected_news['link']})")
+        # Convert back to RGB for saving/displaying
+        return watermarked.convert("RGB")
+    except Exception as e:
+        # If watermarking fails for any reason, return original to prevent app crash
+        print(f"Watermarking failed: {e}")
+        return pil_image
+
+# Initialize DB on first run
+db.init_db()
+
+# Session State Initialization
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+# --- Login Logic ---
+if st.session_state.user is None:
+    st.title("🛋️ バーチャル家具配置ツール")
+    st.subheader("ログイン")
+
+    username = st.text_input("ログインID")
+    password = st.text_input("パスワード", type="password")
+
+    if st.button("ログイン"):
+        user = db.authenticate(username, password)
+        if user:
+            st.session_state.user = {
+                "id": user["id"],
+                "username": username,
+                "role": user["role"],
+                "mansion_name": user.get("mansion_name")
+            }
+            st.success("ログインに成功しました。")
+            st.rerun()
+        else:
+            st.error("IDまたはパスワードが間違っています。")
+    st.stop()
+
+# --- Admin Redirect ---
+if st.session_state.user["role"] == "admin":
+    st.success("管理者としてログインしました。システム管理画面に移動します。")
+    if st.button("システム管理画面へ"):
+        st.switch_page("pages/admin.py")
+    st.stop()
+
+# --- Client Dashboard ---
+mansion_name = st.session_state.user.get('mansion_name')
+title_prefix = f"【{mansion_name}】専用 " if mansion_name else ""
+
+st.title(f"🛋️ {title_prefix}バーチャル家具配置ツール")
+
+# Sidebar: Usage Counter and Logout
+with st.sidebar:
+    st.header("📊 ご利用状況")
+
+    # Use empty containers so we can update them without a full rerun
+    metric_container = st.empty()
+    progress_container = st.empty()
+    error_container = st.empty()
+
+    def update_sidebar_counters():
+        count, limit = db.get_user_monthly_usage(st.session_state.user["id"])
+        metric_container.metric("今月の生成枚数", f"{count} / {limit} 枚")
+        if limit > 0:
+            progress_container.progress(min(count / limit, 1.0))
+        if count >= limit:
+            error_container.error("⚠️ 今月の上限枚数に達しました。")
+        return count, limit
+
+    # Initial draw
+    count, limit = update_sidebar_counters()
 
     st.divider()
+    st.markdown(f"ログイン中: **{st.session_state.user['username']}**")
+    if st.button("ログアウト"):
+        st.session_state.clear()
+        st.rerun()
 
-    if st.button("🚀 選択したニュースでブログを生成してNoteに投稿", type="primary", use_container_width=True):
-        # 設定の確認
-        if not os.environ.get("GEMINI_API_KEY"):
-            st.error("エラー: Gemini APIキーが設定されていません。サイドバーから設定してください。")
-            st.stop()
-        if not os.environ.get("NOTE_EMAIL") or not os.environ.get("NOTE_PASSWORD"):
-            st.error("エラー: Noteのログイン情報が設定されていません。サイドバーから設定してください。")
+# Main Functionality
+st.markdown("お部屋の写真に、AIが自動で家具を配置（バーチャルステージング）します。")
+
+input_method = st.radio("写真の入力方法を選択してください", ("ファイルアップロード", "カメラで撮影"))
+
+uploaded_file = None
+if input_method == "ファイルアップロード":
+    uploaded_file = st.file_uploader("お部屋の写真をアップロードしてください (JPG/PNG)", type=["jpg", "jpeg", "png"])
+else:
+    uploaded_file = st.camera_input("カメラで部屋を撮影してください")
+
+style_options = {
+    "モダン (Modern)": "モダンで洗練された家具、すっきりとしたライン、落ち着いたモノトーンやニュートラルな色合い。Modern and sleek furniture, clean lines, neutral colors.",
+    "北欧風 (Scandinavian/Nordic)": "北欧スタイルの家具、明るく居心地が良い、明るい木目、白を基調としたミニマリストな空間。Scandinavian style furniture, bright, cozy, light wood, white-based minimalist.",
+    "インダストリアル (Industrial)": "インダストリアルスタイル、レンガ打ちっぱなし、アイアン（金属）と無垢材の家具、無骨な雰囲気。Industrial style, exposed brick, dark metal and wood furniture, raw.",
+    "和モダン (Japanese Modern)": "和風とモダンを融合したスタイル、低い家具、障子や竹の要素、落ち着いたアースカラー。Japanese modern style, low furniture, shoji or bamboo elements, calm earth colors.",
+    "ヴィンテージ/レトロ (Vintage/Retro)": "古き良き時代のヴィンテージ家具、レザーソファ、深みのある木材、ノスタルジックな雰囲気。Vintage or retro furniture, leather sofa, dark rich wood, nostalgic atmosphere.",
+    "西海岸風 (West Coast/Surf)": "カリフォルニアのビーチハウスのような西海岸スタイル、ブルーと白、デニム生地、流木、リラックスした雰囲気。West coast California beach house style, blue and white, denim fabric, driftwood, relaxed vibe.",
+    "ボタニカル (Botanical/Jungle)": "観葉植物をふんだんに取り入れたボタニカルスタイル、ラタン（籐）の家具、緑豊かなリラックス空間。Botanical style with lots of indoor plants, rattan furniture, lush green relaxing space.",
+    "ホテルライク (Hotel-like/Luxury)": "高級ホテルのようなラグジュアリーな空間、大理石、ベルベット素材、間接照明、洗練されたデザイン。Luxury hotel-like space, marble, velvet materials, indirect lighting, sophisticated design.",
+    "韓国風カフェ (Korean Cafe)": "韓国カフェのような淡色系インテリア、ウェーブミラー、丸みのある家具、アイボリーやベージュ基調。Korean cafe style pastel interior, wave mirror, rounded furniture, ivory and beige tones.",
+    "ミッドセンチュリー (Mid-Century)": "1950年代風のミッドセンチュリーデザイン、幾何学模様、ポップな色使い、曲木細工の家具。Mid-century modern design, geometric patterns, pop colors, bentwood furniture.",
+    "シャビーシック (Shabby Chic)": "使い込まれたアンティーク感のある白家具、フリルやレース、フェミニンでロマンチックな空間。Shabby chic style, distressed white antique furniture, feminine and romantic space.",
+    "アジアンリゾート (Asian Resort)": "バリ島などのリゾート地を思わせるアジアンスタイル、ウォーターヒヤシンス、ダークブラウン、開放的。Asian resort style like Bali, water hyacinth furniture, dark brown, open and airy.",
+    "自由入力": ""
+}
+
+selected_style_name = st.selectbox("家具のスタイルを選択してください", list(style_options.keys()))
+
+# Show dynamic description for the selected style to help users
+if selected_style_name != "自由入力":
+    # Extract just the Japanese part before the first period/English description for a cleaner UI
+    raw_desc = style_options[selected_style_name]
+    jp_desc = raw_desc.split("。")[0] + "。" if "。" in raw_desc else raw_desc
+    st.info(f"💡 **スタイルの特徴:** {jp_desc}")
+
+custom_prompt = ""
+if selected_style_name == "自由入力":
+    custom_prompt = st.text_area("配置したい家具のイメージを入力してください")
+
+if uploaded_file is not None:
+    # Remove the generic original image display here so we can show it side-by-side later
+    # or keep it as a preview before generation.
+    st.image(uploaded_file, caption="アップロードされた写真（プレビュー）", use_container_width=True)
+
+    if st.button("家具を配置する (画像を生成)", type="primary"):
+        # Check limit
+        if count >= limit:
+            st.error("今月の生成上限に達しているため、生成できません。管理者に連絡してください。")
             st.stop()
 
-        with st.status("自動化処理を実行中...", expanded=True) as status:
+        # Check API Key
+        api_key = db.get_api_key()
+        if not api_key:
+            st.error("システムエラー: 管理者によるAPIキーの設定が完了していません。")
+            st.stop()
+
+        # Determine prompt
+        base_prompt = db.get_base_prompt()
+        if selected_style_name == "自由入力":
+            if not custom_prompt:
+                st.warning("自由入力の場合は、イメージを入力してください。")
+                st.stop()
+            final_prompt = f"{base_prompt}\n\n追加する家具のスタイル・イメージ: {custom_prompt}"
+        else:
+            final_prompt = f"{base_prompt}\n\n追加する家具のスタイル・イメージ: {style_options[selected_style_name]}"
+
+        with st.status("AIが画像を生成中...", expanded=True) as status:
             try:
-                # 1. 記事生成
-                st.write(f"🧠 Geminiが白熱討論ブログを執筆中...（対象: {selected_news['title']}）")
-                try:
-                    title, body = generate_blog_content(selected_news)
-                    st.write("✅ 記事の生成が完了しました！")
-                except Exception as e:
-                    status.update(label="❌ 記事の生成中にエラーが発生しました", state="error")
-                    st.error(f"詳細エラー内容: {e}")
-                    st.warning("APIキーが未設定か間違っている、無料枠の上限に達している、または生成されたニュースがポリシー違反でブロックされた可能性があります。サイドバーの「設定を保存してAPIをテスト」ボタンでAPIキーが有効か確認してください。")
-                    st.stop()
+                # Load image
+                image = Image.open(uploaded_file)
 
-                # プレビュー表示（エキスパンダー内）
-                with st.expander("📝 生成された記事のプレビューを確認", expanded=True):
-                    st.subheader(title)
-                    st.markdown(body)
+                # Call Gemini
+                client = genai.Client(api_key=api_key)
+                response = client.models.generate_content(
+                    model='gemini-3.1-flash-image-preview',
+                    contents=[final_prompt, image],
+                    config=genai.types.GenerateContentConfig(
+                         response_modalities=["IMAGE"],
+                    )
+                )
 
-                # 3. Noteへの投稿
-                st.write("🌐 Noteへログインし、下書きとして保存中...")
-                try:
-                    asyncio.run(post_to_note(title, body))
-                    status.update(label="全ての処理が完了しました！", state="complete")
-                    st.balloons()
-                    st.success("🎉 Note.comの「記事」画面に下書きとして保存されました。確認して手動で公開してください！")
-                except Exception as e:
-                    status.update(label="Noteへの自動投稿に失敗しました", state="error")
-                    st.error(f"詳細: {e}")
-                    st.warning("⚠️ Note.comへの自動投稿がBot対策などにより失敗しました。以下のテキストボックスから記事をコピーして、手動でNoteに貼り付けてください。")
+                if hasattr(response, "candidates") and response.candidates and hasattr(response.candidates[0], "content") and response.candidates[0].content.parts:
+                    # Look for the generated image part
+                    generated_image_bytes = None
+                    for part in response.candidates[0].content.parts:
+                        if hasattr(part, "inline_data") and part.inline_data:
+                            generated_image_bytes = part.inline_data.data
+                            break
 
-                    # コピー用のテキストエリアを表示
-                    st.subheader("📋 手動コピー用")
-                    st.text_input("タイトル（クリックして全選択コピー）", value=title)
-                    st.text_area("本文（クリックして全選択コピー）", value=body, height=400)
+                    if not generated_image_bytes:
+                        status.update(label="画像が生成されませんでした。", state="error")
+                        st.error("AIからのレスポンスに画像データが含まれていませんでした。")
+                        st.stop()
+
+                    # Convert to PIL Image for watermarking
+                    pil_img = Image.open(io.BytesIO(generated_image_bytes))
+
+                    # Apply watermark
+                    watermark_text = f"【{mansion_name}】専用作成" if mansion_name else "Sample"
+                    watermarked_image = add_watermark(pil_img, watermark_text)
+
+                    # Save images locally for admin reporting
+                    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    username = st.session_state.user["username"]
+
+                    orig_filename = f"{username}_{timestamp_str}_orig.jpg"
+                    orig_filepath = os.path.join(IMAGE_DIR, orig_filename)
+                    image.convert("RGB").save(orig_filepath, "JPEG")
+
+                    gen_filename = f"{username}_{timestamp_str}_gen.jpg"
+                    gen_filepath = os.path.join(IMAGE_DIR, gen_filename)
+                    watermarked_image.convert("RGB").save(gen_filepath, "JPEG", quality=95)
+
+                    # Log generation with paths and prompt
+                    # We store paths relative to the project root
+                    db.log_generation(
+                        user_id=st.session_state.user["id"],
+                        prompt=final_prompt,
+                        original_image_path=os.path.join("data", "images", orig_filename),
+                        generated_image_path=os.path.join("data", "images", gen_filename)
+                    )
+
+                    status.update(label="生成が完了しました！", state="complete")
+                    st.success("画像の生成に成功しました。")
+
+                    # Display Side-by-Side Comparison
+                    st.markdown("### 📸 ビフォー・アフター")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.image(image, caption="元の写真", use_container_width=True)
+                    with col2:
+                        st.image(watermarked_image, caption="AIが配置した家具", use_container_width=True)
+
+                    # Update sidebar counters dynamically without a full rerun
+                    update_sidebar_counters()
+                else:
+                    status.update(label="画像が生成されませんでした。", state="error")
+                    st.error("AIからの画像レスポンスが空でした。")
 
             except Exception as e:
                 status.update(label="エラーが発生しました", state="error")
                 st.error(f"詳細: {e}")
-else:
-    st.info("上の「最新のニュースを取得する」ボタンを押して、記事を選んでください。")

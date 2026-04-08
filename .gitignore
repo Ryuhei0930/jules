@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 .env
+staging_app.db
+streamlit.pid
+streamlit_output.log
+data/images/
