@@ -109,14 +109,23 @@ st.title(f"🛋️ {title_prefix}バーチャル家具配置ツール")
 # Sidebar: Usage Counter and Logout
 with st.sidebar:
     st.header("📊 ご利用状況")
-    count, limit = db.get_user_monthly_usage(st.session_state.user["id"])
 
-    st.metric("今月の生成枚数", f"{count} / {limit} 枚")
-    if limit > 0:
-        st.progress(min(count / limit, 1.0))
+    # Use empty containers so we can update them without a full rerun
+    metric_container = st.empty()
+    progress_container = st.empty()
+    error_container = st.empty()
 
-    if count >= limit:
-        st.error("⚠️ 今月の上限枚数に達しました。")
+    def update_sidebar_counters():
+        count, limit = db.get_user_monthly_usage(st.session_state.user["id"])
+        metric_container.metric("今月の生成枚数", f"{count} / {limit} 枚")
+        if limit > 0:
+            progress_container.progress(min(count / limit, 1.0))
+        if count >= limit:
+            error_container.error("⚠️ 今月の上限枚数に達しました。")
+        return count, limit
+
+    # Initial draw
+    count, limit = update_sidebar_counters()
 
     st.divider()
     st.markdown(f"ログイン中: **{st.session_state.user['username']}**")
@@ -232,8 +241,8 @@ if uploaded_file is not None:
                     status.update(label="生成が完了しました！", state="complete")
                     st.image(watermarked_image, caption="AIが配置した家具", use_column_width=True)
                     st.success("画像の生成に成功しました。")
-                    # Force sidebar refresh to update the counter
-                    st.rerun()
+                    # Update sidebar counters dynamically without a full rerun
+                    update_sidebar_counters()
                 else:
                     status.update(label="画像が生成されませんでした。", state="error")
                     st.error("AIからの画像レスポンスが空でした。")
