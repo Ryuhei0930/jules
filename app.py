@@ -162,6 +162,13 @@ style_options = {
 
 selected_style_name = st.selectbox("家具のスタイルを選択してください", list(style_options.keys()))
 
+# Show dynamic description for the selected style to help users
+if selected_style_name != "自由入力":
+    # Extract just the Japanese part before the first period/English description for a cleaner UI
+    raw_desc = style_options[selected_style_name]
+    jp_desc = raw_desc.split("。")[0] + "。" if "。" in raw_desc else raw_desc
+    st.info(f"💡 **スタイルの特徴:** {jp_desc}")
+
 custom_prompt = ""
 if selected_style_name == "自由入力":
     custom_prompt = st.text_area("配置したい家具のイメージを入力してください")
