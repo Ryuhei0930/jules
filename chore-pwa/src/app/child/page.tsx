@@ -31,20 +31,10 @@ const calculatePoints = (chore: Chore) => {
  * complete them for points, and exchange points for rewards.
  */
 export default function ChildDashboard() {
-  const { role } = useAuth();
+  const { userId, role } = useAuth();
   const [totalPoints, setTotalPoints] = useState<number>(0);
   const [chores, setChores] = useState<Chore[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  const fetchUserData = async () => {
-    // In a real app, use the actual authenticated user ID
-    const { data } = await supabase.from("users").select("*").eq("role", "child").limit(1);
-    if (data && data.length > 0) {
-      setUserId(data[0].id);
-      setTotalPoints(data[0].total_points);
-    }
-  };
 
   const fetchChores = async () => {
     const { data } = await supabase.from("chores").select("*");
@@ -61,6 +51,14 @@ export default function ChildDashboard() {
   };
 
   useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userId) return;
+      const { data } = await supabase.from("users").select("*").eq("id", userId).single();
+      if (data) {
+        setTotalPoints(data.total_points);
+      }
+    };
+
     const loadData = async () => {
       await fetchUserData();
       await fetchChores();
@@ -68,7 +66,7 @@ export default function ChildDashboard() {
     };
     loadData();
 
-  }, [role]); // Refetch if role somehow toggles while on this component
+  }, [role, userId]); // Refetch if role or userId somehow toggles while on this component
 
   /**
    * Handles chore completion: logs the event and adds points to the user.

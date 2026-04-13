@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { AlertCircle, Send, MessageSquare } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
-import { useAuth } from "./AuthProvider";
 
 // Define message type
 interface Message {
@@ -23,7 +22,6 @@ interface Message {
  * messages to the family communication board.
  */
 export default function BulletinBoard() {
-  const { role } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newContent, setNewContent] = useState("");
   const [isImportant, setIsImportant] = useState(false);
@@ -69,32 +67,28 @@ export default function BulletinBoard() {
     setLoading(true);
 
     try {
-      // Find the current mock user ID based on role
-      const { data: usersData } = await supabase
-        .from("users")
-        .select("id")
-        .eq("role", role)
-        .limit(1);
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      if (usersData && usersData.length > 0) {
-        const userId = usersData[0].id;
+      if (authError || !user) {
+         console.error("Authentication required");
+         return;
+      }
 
-        const { error } = await supabase.from("messages").insert([
-          {
-            user_id: userId,
-            content: newContent,
-            is_important: isImportant,
-          },
-        ]);
+      const { error } = await supabase.from("messages").insert([
+        {
+          user_id: user.id,
+          content: newContent,
+          is_important: isImportant,
+        },
+      ]);
 
-        if (error) {
-          console.error("Error posting message:", error);
-        } else {
-          setNewContent("");
-          setIsImportant(false);
-          // Refresh list
-          fetchMessages();
-        }
+      if (error) {
+        console.error("Error posting message:", error);
+      } else {
+        setNewContent("");
+        setIsImportant(false);
+        // Refresh list
+        fetchMessages();
       }
     } catch (err) {
       console.error("Unexpected error posting:", err);
