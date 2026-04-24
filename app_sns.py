@@ -8,7 +8,7 @@ from google.genai.errors import APIError
 st.set_page_config(page_title="社内SNS調査ツール", page_icon="🔍", layout="wide")
 
 st.title("🔍 社内SNS調査・分析ダッシュボード")
-st.markdown("柔軟なキーワード検索とGemini 3.1 Flashによる高度な感情分析・インサイト抽出を行うための社内ツールです。")
+st.markdown("柔軟なキーワード検索とGeminiによる高度な感情分析・インサイト抽出を行うための社内ツールです。")
 
 # サイドバー：APIキー設定
 st.sidebar.header("🔑 API設定")
@@ -88,7 +88,7 @@ if search_clicked:
         })
         posts_text = "\n".join([f"- [{row['プラットフォーム']}] {row['内容']}" for index, row in df_dummy.iterrows()])
 
-        with st.spinner("データを収集中... Gemini 3.1 Flash が高度な文脈分析とインサイト抽出を実行しています..."):
+        with st.spinner("データを収集中... Gemini が高度な文脈分析とインサイト抽出を実行しています..."):
             try:
                 client = genai.Client(api_key=api_key)
 
@@ -105,7 +105,7 @@ if search_clicked:
                 prompt = f"以下のSNSデータについて、指定された観点で高度な分析レポートを作成してください。\n\n<data>\n対象キーワード: {main_keyword}\n収集データ:\n{posts_text}\n</data>"
 
                 response = client.models.generate_content(
-                    model='gemini-3.1-flash',
+                    model='gemini-2.0-flash',
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
@@ -127,7 +127,7 @@ if search_clicked:
         tab1, tab2, tab3 = st.tabs(["📊 サマリー・AI要約", "📈 トレンド・感情分析", "📋 生データ一覧"])
 
         with tab1:
-            st.subheader("🧠 Gemini 3.1 Flash 高度分析レポート")
+            st.subheader("🧠 Gemini 高度分析レポート")
             if "エラー" not in ai_analysis_result:
                 st.info("LLMが投稿の文脈を読み解き、単なる集計以上の深いインサイトを提供します。")
             st.markdown(ai_analysis_result)
