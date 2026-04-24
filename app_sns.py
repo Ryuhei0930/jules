@@ -105,7 +105,7 @@ if search_clicked:
                 prompt = f"以下のSNSデータについて、指定された観点で高度な分析レポートを作成してください。\n\n<data>\n対象キーワード: {main_keyword}\n収集データ:\n{posts_text}\n</data>"
 
                 response = client.models.generate_content(
-                    model='gemini-2.0-flash',
+                    model='gemini-3.1-flash-lite-preview',
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
