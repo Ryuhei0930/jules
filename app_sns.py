@@ -13,6 +13,22 @@ st.markdown("柔軟なキーワード検索とGemini 3.1 Flashによる高度な
 # サイドバー：APIキー設定
 st.sidebar.header("🔑 API設定")
 api_key = st.sidebar.text_input("Gemini API Key", type="password", placeholder="AI分析を実行するには入力必須")
+
+if st.sidebar.button("🔌 APIキーの接続テスト", use_container_width=True):
+    if not api_key:
+        st.sidebar.warning("APIキーを入力してください。")
+    else:
+        with st.sidebar.spinner("確認中..."):
+            try:
+                client = genai.Client(api_key=api_key)
+                # モデルリストの取得で接続と認証の有効性をテスト
+                list(client.models.list())
+                st.sidebar.success("✅ 接続成功！正しいAPIキーです。")
+            except APIError as e:
+                st.sidebar.error(f"❌ 認証エラー: APIキーが無効か、権限がありません。詳細: {e}")
+            except Exception as e:
+                st.sidebar.error(f"❌ エラーが発生しました: {e}")
+
 st.sidebar.markdown("---")
 
 # サイドバー：検索条件の設定
