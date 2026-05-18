@@ -1,3 +1,9 @@
 __pycache__/
 *.pyc
 .env
+mediapipe_image_gen_android/.dart_tool/
+mediapipe_image_gen_android/.packages
+mediapipe_image_gen_android/build/
+mediapipe_image_gen_android/.pub-cache/
+mediapipe_image_gen_android/.pub/
+*.DS_Store
