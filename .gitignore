@@ -1,3 +1,12 @@
 __pycache__/
 *.pyc
 .env
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+/build/
+*.DS_Store
+*.so
+*.apk
