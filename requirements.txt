@@ -3,3 +3,5 @@ google-genai
 playwright
 feedparser
 python-dotenv
+werkzeug
+pillow
